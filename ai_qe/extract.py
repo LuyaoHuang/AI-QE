@@ -1,7 +1,12 @@
 import requests
 import json
 
-from .config import Config
+try:
+    from .config import Config
+    from ._utils import llm_json_api, json_reply_parser
+except ImportError:
+    from config import Config
+    from _utils import llm_json_api, json_reply_parser
 
 
 PROMPT = """[INST]You are a helpful AI assistant that can help user to extract information in the content. You can extract "test item" and "test feature" in user offered sentence.
@@ -30,43 +35,13 @@ Assistant: {}
 """
 
 
-def text_generation_webui_api(server_ip: str, server_port: int,
-                              instruction: str, old_context: str = "") -> (str, str):
-    if old_context:
-        data = old_context
-    else:
-        data = PROMPT
-
-    if instruction:
-        data += instruction
-
-    # Avoid LLM gernerate user input
-    data += "\nAssistant: {"
-
-
-    response = requests.post(f"http://{server_ip}:{server_port}/v1/completions", json={
-        "prompt": data,
-        "max_tokens": 500,
-    }).json()
-
-    reply = response["choices"][0]["text"]
-    # TODO: only accept 1 json
-    reply = reply[:reply.find("}") + 1]
-    return data + reply, reply
-
-
-def ai_reply_parser(reply: str) -> (str, str):
-    reply = "{" + reply
-    data = reply[:reply.find("}") + 1]
-    json_data = json.loads(data)
-    return json_data
-
-
 def extract_info(user_input: str) -> dict:
-    _, reply = text_generation_webui_api(Config.llm_server_ip,
-                                         Config.llm_server_port,
-                                         "\nUser: " + user_input)
-    return ai_reply_parser(reply)
+    _, reply = llm_json_api(Config.llm_server_ip,
+                            Config.llm_server_port,
+                            PROMPT,
+                            "\nUser: " + user_input,
+                            max_tokens=500)
+    return json_reply_parser(reply)
 
 
 if __name__ == "__main__":

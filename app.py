@@ -8,6 +8,11 @@ from ai_qe._utils import load_func_data, load_module_data
 from ai_qe.case_generator import gen_cases
 
 
+class InvalidInput(Exception):
+    """ User give a invalid input
+    """
+
+
 class AIQE(object):
     def __init__(self):
         #TODO
@@ -21,18 +26,17 @@ class AIQE(object):
         """
         data = extract_info(user_msg)
         if not data:
-            # TODO: exception
-            return
+            raise InvalidInput("Cannot extract information from this msg: " + user_msg)
         rets = {"test item": [], "test feature": []}
         for value in data["test item"]:
             tmp = self.search_item(value, self._test_item_list)
-            # TODO
-            assert(tmp.get("item_name"))
+            if not tmp.get("item_name"):
+                raise InvalidInput(f"Cannot find matched test item for '{value}'")
             rets["test item"].append(tmp["item_name"])
         for value in data["test feature"]:
             tmp = self.search_item(value, self._module_list)
-            # TODO
-            assert(tmp.get("item_name"))
+            if not tmp.get("item_name"):
+                raise InvalidInput(f"Cannot find matched feature for '{value}'")
             rets["test feature"].append(tmp["item_name"])
         return rets
 
@@ -42,9 +46,13 @@ class AIQE(object):
         return search_item(string, item_list)
 
     def gen_test_cases(self, test_items, features):
+        """ Use case generator tool to generate test case
+        """
         return gen_cases(test_items, features)
 
     def run_tests(self, test_cases):
+        """ Use AI to execute test cases
+        """
         rets = []
         for case in test_cases:
             result, history = self.run_test(case)
@@ -52,6 +60,8 @@ class AIQE(object):
         return rets
 
     def run_test(self, test_case):
+        """ Use AI to execute test case
+        """
         return ai_qe_demo(Config.llm_server_ip, Config.llm_server_port, test_case)
 
 
@@ -68,6 +78,8 @@ with gr.Blocks() as demo:
     with gr.Group():
         chatbot = gr.Chatbot()
         msg = gr.Textbox(label="Talk to AI-QE")
+        # FIXME
+        gr.Examples(examples=["generate test case test rng device hotplug with rng and memory feature"], inputs=msg)
 
     with gr.Group(visible=False) as group1:
         select_cases = gr.Dropdown(
@@ -113,10 +125,16 @@ with gr.Blocks() as demo:
 
     def aiqe_reply(history):
         latest_msg = history[-1][0]
-        info = ai_qe_inst.extract_info(latest_msg)
+        dict_cases = {}
+        try:
+            info = ai_qe_inst.extract_info(latest_msg)
+        except InvalidInput as e:
+            # TODO: use LLM to tell user error
+            history[-1][1] = f"ServerError: {e}"
+            return history, dict_cases, gr.update(choices=dict_cases.keys(), value=None), gr.update(choices=dict_cases.keys(), value=None)
+
         cases, log = ai_qe_inst.gen_test_cases(info["test item"], info["test feature"])
         history[-1][1] = MSG_GEN_CASES
-        dict_cases = {}
         for i, case in enumerate(cases):
             dict_cases[f"case {i+1}"] = case
         return history, dict_cases, gr.update(choices=dict_cases.keys(), value=None), gr.update(choices=dict_cases.keys(), value=None)

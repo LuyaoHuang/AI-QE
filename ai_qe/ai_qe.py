@@ -1,7 +1,10 @@
-import requests
-import subprocess
-import json
-import argparse
+import sys, tempfile, os, argparse
+from subprocess import call
+
+try:
+    from ._utils import llm_json_api, json_reply_parser, run_cmd
+except ImportError:
+    from _utils import llm_json_api, json_reply_parser, run_cmd
 
 
 PROMPT = """[INST] You are a helpful AI assistant, you are an agent capable of using a variety of tools to test a software. Here are a few of the tools available to you:
@@ -39,72 +42,33 @@ Let's get started. The first test case is as follows.
 [/INST]"""
 
 
-def text_generation_webui_api(server_ip: str, server_port: int, input_data: str,
-                              instruction: str, old_context: str = "") -> (str, str):
-    if old_context:
-        data = old_context
-    else:
-        data = PROMPT % input_data
-
-    if instruction:
-        data += instruction
-
-    data += "\nAssistant: {"
-
-
-    response = requests.post(f"http://{server_ip}:{server_port}/v1/completions", json={
-        "prompt": data,
-        "max_tokens": 8000,
-    }).json()
-
-    reply = response["choices"][0]["text"]
-    # TODO: only accept 1 json
-    reply = reply[:reply.find("}") + 1]
-    return data + reply, reply
-
-
-def run_cmd(cmd_line: str) -> (int, str):
-    cmd_list = cmd_line.split()
-    if cmd_list[0] in ('$', '#'):
-        cmd_list = cmd_list[1:]
-    # FIXME
-    result = subprocess.run(cmd_line.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    # TODO
-    output = result.stdout.decode('utf-8')
-    error = result.stderr.decode('utf-8')
-    return result.returncode, output + error
-
-
-def ai_reply_parser(reply: str) -> (str, str):
-    reply = "{" + reply
-    data = reply[:reply.find("}") + 1]
-    print(data)
-    #TODO: remove it
-    data = data.replace("\n", " ")
-    json_data = json.loads(data)
-    return json_data["tool_name"], json_data["input"]
-
-
 def create_file(data: str):
     # FIXME
     name, context = data[:data.find(":")], data[data.find(":") + 1:]
-    # TODO: avoid some security issue
-    with open(f"{name}", "w+") as fp:
+    # TODO: check the file path to avoid some security issues
+    with open(name, "w+") as fp:
         fp.write(context)
 
 
-def read_file(path: str) -> str:
-    with open(path) as fp:
-        return fp.read()
+def read_tempfile_input(base_str: str):
+    with tempfile.NamedTemporaryFile(suffix=".tmp") as tf:
+        tf.write(str.encode(base_str))
+        tf.flush()
+        call(["vim", tf.name])
+        tf.seek(0)
+        return tf.read().decode()
 
 
-def ai_qe_demo(server_ip, server_port, case):
+def ai_qe_demo(server_ip, server_port, case, mock=False):
     next_instruction = ""
     history = ""
     while True:
-        history, reply = text_generation_webui_api(server_ip, server_port,
-                                                   case, next_instruction, history)
-        tool_name, input = ai_reply_parser(reply)
+        history, reply = llm_json_api(server_ip, server_port,
+                                      PROMPT % case, next_instruction, history)
+        data = json_reply_parser(reply)
+        tool_name, input = data["tool_name"], data["input"]
+        if mock:
+            print(data["input"])
         if tool_name == "Case Result":
             print(f"Case Result: {input}")
             print(f"History: {history}")
@@ -114,13 +78,17 @@ def ai_qe_demo(server_ip, server_port, case):
             next_instruction = "\nTool output: ok"
         elif tool_name == "CMD":
             try:
-                _, output = run_cmd(input)
+                if mock:
+                    output = read_tempfile_input(input)
+                else:
+                    _, output = run_cmd(input)
                 next_instruction = f"\nTool output: {output}"
             except FileNotFoundError:
                 # TODO: give more clearly error
                 next_instruction = "\nTool output: invalid input"
         elif tool_name == "Create File":
-            create_file(input)
+            if not mock:
+                create_file(input)
             next_instruction = "\nTool output: ok"
         elif tool_name == "Search":
             raise
@@ -128,31 +96,38 @@ def ai_qe_demo(server_ip, server_port, case):
     return input, history
 
 
-def parse_args():
-    parser = argparse.ArgumentParser(
-        description="AI-QE demo"
-    )
-    parser.add_argument(
-        "--server-ip", "-s", dest="server_ip",
-        help="text-generation-webui server IP address",
-        type=str, required=True
-    )
-    parser.add_argument(
-        "--server-port", "-p", dest="server_port",
-        help="text-generation-webui server Port number",
-        default=5000,
-        type=int,
-    )
-    parser.add_argument(
-        "--test-case", "-t", dest="case_file",
-        help="Path to the test case file",
-        type=str, required=True
-    )
-
-    return parser.parse_args()
-
-
 if __name__ == "__main__":
+    def parse_args():
+        parser = argparse.ArgumentParser(
+            description="AI-QE demo"
+        )
+        parser.add_argument(
+            "--server-ip", "-s", dest="server_ip",
+            help="text-generation-webui server IP address",
+            type=str, required=True
+        )
+        parser.add_argument(
+            "--server-port", "-p", dest="server_port",
+            help="text-generation-webui server Port number",
+            default=5000,
+            type=int,
+        )
+        parser.add_argument(
+            "--test-case", "-t", dest="case_file",
+            help="Path to the test case file",
+            type=str, required=True
+        )
+        parser.add_argument(
+            "--mock", "-m", dest="mock",
+            help="Mock commands execution",
+            action='store_true'
+        )
+        return parser.parse_args()
+
+    def read_file(path: str) -> str:
+        with open(path) as fp:
+            return fp.read()
+
     args = parse_args()
     case = read_file(args.case_file)
-    ai_qe_demo(args.server_ip, args.server_port, case)
+    ai_qe_demo(args.server_ip, args.server_port, case, args.mock)

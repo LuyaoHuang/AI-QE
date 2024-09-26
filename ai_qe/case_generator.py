@@ -1,10 +1,13 @@
-import subprocess
 import tempfile
 import yaml
 import copy
 import os
 import re
 
+try:
+    from ._utils import run_cmd
+except ImportError:
+    from _utils import run_cmd
 
 # TODO
 BASE_PARAM = {
@@ -22,18 +25,6 @@ BASE_PARAM = {
     },
     "case": []
 }
-
-
-def run_cmd(cmd_line: str) -> (int, str):
-    cmd_list = cmd_line.split()
-    # FIXME
-    result = subprocess.run(cmd_line.split(),
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE)
-    # TODO
-    output = result.stdout.decode('utf-8')
-    error = result.stderr.decode('utf-8')
-    return result.returncode, output + error
 
 
 def split_case(case_file: str) -> list:
@@ -64,8 +55,7 @@ def call_deptest(temp_yaml: str) -> (list, str):
             fp.write(temp_yaml)
         ret_code, log = run_cmd(f"deptest --template {tmp_file.name}")
         if ret_code != 0:
-            print(log)
-            raise
+            raise Exception(log)
         return split_case("test_items/case0.file-case"), log
     finally:
         os.remove(tmp_file.name)
@@ -80,7 +70,7 @@ def build_yaml(test_items: list, features: list) -> str:
     }
 
     for item in test_items:
-        # TODO: impove the case generator
+        # TODO: impove case generator
         base_data["test_objs"].append(re.sub(r"(.*)_doc.(.*)", r"\1.\2", item))
     for feature in features:
         base_data["modules"].append(re.sub(r"(.*)_doc", r"\1", feature))
