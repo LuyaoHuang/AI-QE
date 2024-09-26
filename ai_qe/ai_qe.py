@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import requests
 import subprocess
 import json
@@ -21,11 +19,11 @@ For example, to run the example test case, "step 1: # echo $HOME Expected Result
     "input": "echo $HOME"
 }
 
-Or to create a file named 123.file and write "456" in it, you can use Create File tool:
+Or to create a file named "tmp.file" under "/root/" dir and write "123" in it, you can use Create File tool:
 
 {
     "tool_name": "Create File",
-    "input": "123.file: 456"
+    "input": "/root/tmp.file:123"
 }
 
 Remember, when you have test all the steps in one test case, you can use Case Result tool to set the result:
@@ -81,6 +79,8 @@ def ai_reply_parser(reply: str) -> (str, str):
     reply = "{" + reply
     data = reply[:reply.find("}") + 1]
     print(data)
+    #TODO: remove it
+    data = data.replace("\n", " ")
     json_data = json.loads(data)
     return json_data["tool_name"], json_data["input"]
 
@@ -88,6 +88,7 @@ def ai_reply_parser(reply: str) -> (str, str):
 def create_file(data: str):
     # FIXME
     name, context = data[:data.find(":")], data[data.find(":") + 1:]
+    # TODO: avoid some security issue
     with open(f"{name}", "w+") as fp:
         fp.write(context)
 
@@ -97,13 +98,11 @@ def read_file(path: str) -> str:
         return fp.read()
 
 
-def main():
-    args = parse_args()
-    case = read_file(args.case_file)
+def ai_qe_demo(server_ip, server_port, case):
     next_instruction = ""
     history = ""
     while True:
-        history, reply = text_generation_webui_api(args.server_ip, args.server_port,
+        history, reply = text_generation_webui_api(server_ip, server_port,
                                                    case, next_instruction, history)
         tool_name, input = ai_reply_parser(reply)
         if tool_name == "Case Result":
@@ -118,12 +117,15 @@ def main():
                 _, output = run_cmd(input)
                 next_instruction = f"\nTool output: {output}"
             except FileNotFoundError:
-                next_instruction = "\nTool output: incorret input"
+                # TODO: give more clearly error
+                next_instruction = "\nTool output: invalid input"
         elif tool_name == "Create File":
             create_file(input)
             next_instruction = "\nTool output: ok"
         elif tool_name == "Search":
             raise
+
+    return input, history
 
 
 def parse_args():
@@ -151,4 +153,6 @@ def parse_args():
 
 
 if __name__ == "__main__":
-    main()
+    args = parse_args()
+    case = read_file(args.case_file)
+    ai_qe_demo(args.server_ip, args.server_port, case)
