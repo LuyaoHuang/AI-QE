@@ -1,3 +1,4 @@
+import argparse
 
 
 class Config(object):
@@ -11,3 +12,10 @@ class Config(object):
     @classmethod
     def load_from_yaml(cls, yaml_file: str):
         pass
+
+    @classmethod
+    def load_from_args(cls, args: argparse.Namespace):
+        if args.server_ip:
+            cls.llm_server_ip = args.server_ip
+        if args.server_port:
+            cls.llm_server_port = args.server_port

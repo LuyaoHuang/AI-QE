@@ -1,4 +1,5 @@
 import gradio as gr
+import argparse
 
 from ai_qe.ai_qe import ai_qe_demo
 from ai_qe.config import Config
@@ -68,6 +69,26 @@ class AIQE(object):
 MSG_GEN_CASES = "I have updated generated test cases below. You can view the generated test case's content by select one in the 'View Test Cases Steps' dropdown component. BTW, if you want me to run the test cases, you can first select test cases in the 'Select Test Cases' dropdown component and then click'Run Selected Cases' button"
 MSG_FINISH_RUN = "Test finished, you can check results by select the case name in the 'View Test Results' dropdown component."
 
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="AI-QE demo"
+    )
+    parser.add_argument(
+        "--server-ip", "-s", dest="server_ip",
+        help="text-generation-webui server IP address",
+        type=str,
+    )
+    parser.add_argument(
+        "--server-port", "-p", dest="server_port",
+        help="text-generation-webui server Port number",
+        type=int,
+    )
+    return parser.parse_args()
+
+
+args = parse_args()
+Config.load_from_args(args)
 
 ai_qe_inst = AIQE()
 
