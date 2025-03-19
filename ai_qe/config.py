@@ -1,7 +1,7 @@
 
 
 class Config(object):
-    llm_server_ip = "10.73.179.159" # FIXME
+    llm_server_ip = "0.0.0.0"
     llm_server_port = 5000
 
     # FIXME
