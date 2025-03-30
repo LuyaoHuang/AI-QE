@@ -4,7 +4,7 @@ from .config import Config
 from .extract import extract_info
 from .search import search_item
 from ._utils import load_func_data, load_module_data
-from .case_generator import gen_cases
+from .case_generator import gen_cases, call_deptest
 
 
 class AIQE(object):
@@ -40,10 +40,17 @@ class AIQE(object):
         """
         return search_item(string, item_list)
 
-    def gen_test_cases(self, test_items, features):
+    def gen_test_cases(self, test_items=None, features=None, yaml_file=None):
         """ Use case generator tool to generate test case
         """
-        return gen_cases(test_items, features)
+        if test_items and features:
+            return gen_cases(test_items, features)
+        elif yaml_file:
+            with open(yaml_file, "r") as fp:
+                yaml_str = fp.read()
+            return call_deptest(yaml_str)
+        else:
+            raise InvalidInput("Need pass test_items + features or yaml_file")
 
     def run_tests(self, test_cases):
         """ Use AI to execute test cases
