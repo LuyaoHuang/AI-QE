@@ -19,8 +19,15 @@ $ python server.py --model NeuralMarcoro14-7B --listen --api
 
 ## Install Requirements
 
+1. First install python requirements
 ```
 $ pip install -r requirements.txt
+```
+
+2. If you want to use demo codes to test libvirt RNG feature, you need install virt related rpms
+```
+$ sudo dnf install -y libvirt qemu-kvm
+$ sudo systemctl start virtqemud virtnetworkd
 ```
 
 ## Run Demo APP
