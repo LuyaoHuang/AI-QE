@@ -1,69 +1,9 @@
 import gradio as gr
 import argparse
 
-from ai_qe.ai_qe import ai_qe_demo
+from ai_qe.exceptions import InvalidInput
 from ai_qe.config import Config
-from ai_qe.extract import extract_info
-from ai_qe.search import search_item
-from ai_qe._utils import load_func_data, load_module_data
-from ai_qe.case_generator import gen_cases
-
-
-class InvalidInput(Exception):
-    """ User give a invalid input
-    """
-
-
-class AIQE(object):
-    def __init__(self):
-        #TODO
-        self._module_list = [(i["name"], i["doc"]) for i in load_module_data(Config.test_item_modules,
-                                                                             Config.test_item_dir)]
-        self._test_item_list = [(i["name"], i["doc"]) for i in load_func_data(Config.test_item_modules,
-                                                                              Config.test_item_dir)]
-
-    def extract_info(self, user_msg):
-        """ Extract information from user input message
-        """
-        data = extract_info(user_msg)
-        if not data:
-            raise InvalidInput("Cannot extract information from this msg: " + user_msg)
-        rets = {"test item": [], "test feature": []}
-        for value in data["test item"]:
-            tmp = self.search_item(value, self._test_item_list)
-            if not tmp.get("item_name"):
-                raise InvalidInput(f"Cannot find matched test item for '{value}'")
-            rets["test item"].append(tmp["item_name"])
-        for value in data["test feature"]:
-            tmp = self.search_item(value, self._module_list)
-            if not tmp.get("item_name"):
-                raise InvalidInput(f"Cannot find matched feature for '{value}'")
-            rets["test feature"].append(tmp["item_name"])
-        return rets
-
-    def search_item(self, string, item_list):
-        """ Use AI search matched item
-        """
-        return search_item(string, item_list)
-
-    def gen_test_cases(self, test_items, features):
-        """ Use case generator tool to generate test case
-        """
-        return gen_cases(test_items, features)
-
-    def run_tests(self, test_cases):
-        """ Use AI to execute test cases
-        """
-        rets = []
-        for case in test_cases:
-            result, history = self.run_test(case)
-            ret.append((case, result, history,))
-        return rets
-
-    def run_test(self, test_case):
-        """ Use AI to execute test case
-        """
-        return ai_qe_demo(Config.llm_server_ip, Config.llm_server_port, test_case)
+from ai_qe import AIQE
 
 
 MSG_GEN_CASES = "I have updated generated test cases below. You can view the generated test case's content by select one in the 'View Test Cases Steps' dropdown component. BTW, if you want me to run the test cases, you can first select test cases in the 'Select Test Cases' dropdown component and then click'Run Selected Cases' button"
