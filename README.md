@@ -32,8 +32,16 @@ $ sudo systemctl start virtqemud virtnetworkd
 
 ## Run Demo APP
 
+2 way to show the demo:
+
+1. Use app.py to start a gradio sever
 ```
 $ python app.py -s {text_generation_webui_server_ip}
 ```
 
 Now you can open your browser and access http://localhost:7860 to see the demo.
+
+2. Or use cmd.py to run it via command line
+```
+$ python cmd.py -r "generate test case test rng device hotplug with rng and memory feature" -s {text_generation_webui_server_ip} -n 2
+```
