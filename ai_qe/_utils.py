@@ -8,6 +8,8 @@ import json
 
 
 def load_modules(modules_list: list, module_path: str='.') -> object:
+    """ Use importlib to load python modules
+    """
     cmd_folder = os.path.realpath(module_path)
     sys.path.insert(0, cmd_folder)
     for module in modules_list:
@@ -15,6 +17,8 @@ def load_modules(modules_list: list, module_path: str='.') -> object:
 
 
 def load_func_data(file_list: list, dir_path: str) -> object:
+    """ Get function name and document then format them to dict list
+    """
     for module in load_modules(file_list, dir_path):
         for _, func in inspect.getmembers(module, inspect.isfunction):
             yield {"name": f"{module.__name__}.{func.__name__}",
@@ -22,6 +26,8 @@ def load_func_data(file_list: list, dir_path: str) -> object:
 
 
 def load_module_data(file_list: list, dir_path: str) -> object:
+    """ Use load_modules() function to load function and formate it to dict list
+    """
     for module in load_modules(file_list, dir_path):
         yield {"name": module.__name__,
                "doc": module.__doc__}
@@ -29,6 +35,8 @@ def load_module_data(file_list: list, dir_path: str) -> object:
 
 def llm_json_api(server_ip: str, server_port: int, prompt: str,
                  instruction: str, old_context: str = "", max_tokens: int = 8000) -> (str, str):
+    """ Use special prompt to make LLM return a json reply for tool calling
+    """
     if old_context:
         input_str = old_context
     else:
@@ -64,6 +72,8 @@ def json_reply_parser(data: str) -> (str, str):
 
 
 def run_cmd(cmd_line: str) -> (int, str):
+    """ Use subprocess to run shell command
+    """
     cmd_list = cmd_line.split()
     if cmd_list[0] in ('$', '#'):
         cmd_list = cmd_list[1:]
