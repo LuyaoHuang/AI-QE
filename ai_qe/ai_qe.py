@@ -30,12 +30,14 @@ class TestResultResponse(BaseModel):
 
 def ai_qe_agent(model_name: str, case: str) -> (TestResultResponse, str):
     model = ChatOllama(model=model_name, temperature=0)
-    agent = create_react_agent(model, tools=[create_file, run_shell_cmd],
+    tools = [create_file, run_shell_cmd]
+    agent = create_react_agent(model,
+                               tools=tools,
                                response_format=TestResultResponse,
                                prompt="You are a helpful AI assistant, you are an agent capable of using a variety of tools to test a software.")
     response = agent.invoke(
         {"messages": [{"role": "user",
-                       "content": f"Run this test case and report test result: {case}"}]}
+                       "content": f"Run this test case and report test result:\n{case}"}]}
     )
 
     history = ""
