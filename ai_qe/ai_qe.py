@@ -1,7 +1,14 @@
 import argparse
 from langgraph.prebuilt import create_react_agent
 from langchain_ollama import ChatOllama
-from pydantic import BaseModel, Field
+from langchain_core.tools import tool
+from langgraph.graph import START, END, StateGraph
+from langgraph.graph.message import add_messages
+from typing_extensions import Literal
+from typing import TypedDict, Annotated, List, Union
+
+from langgraph.graph import MessagesState
+from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, ToolMessage
 
 try:
     from ._utils import run_cmd
@@ -9,6 +16,7 @@ except ImportError:
     from _utils import run_cmd
 
 
+@tool
 def create_file(file_path: str, data: str) -> str:
     """Create a file which path is file_path and write data in this file"""
     with open(file_path, "w+") as fp:
@@ -16,35 +24,129 @@ def create_file(file_path: str, data: str) -> str:
     return "success"
 
 
+@tool
 def run_shell_cmd(cmd_line: str) -> str:
     """Run shell command and return output"""
     _, ret = run_cmd(cmd_line)
     return ret
 
 
-class TestResultResponse(BaseModel):
-    """Respond to the user in this format."""
+class AgentState(TypedDict):
+    # The list of previous messages in the conversation
+    messages: Annotated[list, add_messages]
 
-    test_result: str = Field(description="Test Result")
+    # case steps
+    case_steps: list[str]
+    cur_step: int
 
 
-def ai_qe_agent(model_name: str, case: str) -> (TestResultResponse, str):
-    model = ChatOllama(model=model_name, temperature=0)
+def custom_agent(model_name, case):
+    llm = ChatOllama(model=model_name, temperature=0)
+    # Augment the LLM with tools
     tools = [create_file, run_shell_cmd]
-    agent = create_react_agent(model,
-                               tools=tools,
-                               response_format=TestResultResponse,
-                               prompt="You are a helpful AI assistant, you are an agent capable of using a variety of tools to test a software.")
-    response = agent.invoke(
-        {"messages": [{"role": "user",
-                       "content": f"Run this test case and report test result:\n{case}"}]}
-    )
+    tools_by_name = {tool.name: tool for tool in tools}
+    llm_with_tools = llm.bind_tools(tools)
 
+    # Nodes
+    def llm_call(state: AgentState):
+        """LLM decides whether to call a tool or not"""
+
+        return {
+            "messages": [
+                llm_with_tools.invoke(
+                    state["messages"]
+                )
+            ],
+            "case_steps": state["case_steps"],
+            "cur_step": state["cur_step"]
+        }
+
+    def next_step(state: AgentState):
+        next_msg = HumanMessage(content=state["case_steps"][state["cur_step"]])
+        print(next_msg)
+        return {"messages": [next_msg],
+                "case_steps": state["case_steps"],
+                "cur_step": state["cur_step"] + 1}
+
+
+    def tool_node(state: AgentState):
+        """Performs the tool call"""
+
+        result = []
+        for tool_call in state["messages"][-1].tool_calls:
+            tool = tools_by_name[tool_call["name"]]
+            observation = tool.invoke(tool_call["args"])
+            result.append(ToolMessage(content=observation, tool_call_id=tool_call["id"]))
+        return {"messages": result, "case_steps": state["case_steps"], "cur_step": state["cur_step"]}
+
+
+    # Conditional edge function to route to the tool node or end based upon whether the LLM made a tool call
+    def should_continue(state: AgentState) -> Literal["Action", "Next", END]:
+        """Decide if we should continue the loop or stop based upon whether the LLM made a tool call"""
+
+        messages = state["messages"]
+        last_message = messages[-1]
+        # If the LLM makes a tool call, then perform an action
+        if last_message.tool_calls:
+            return "Action"
+        if len(state["case_steps"]) > state["cur_step"]:
+            return "Next"
+        # Otherwise, we stop (reply to the user)
+        return END
+
+
+    # Build workflow
+    agent_builder = StateGraph(AgentState)
+
+    # Add nodes
+    agent_builder.add_node("llm_call", llm_call)
+    agent_builder.add_node("tool_call", tool_node)
+    agent_builder.add_node("next_step", next_step)
+
+    # Add edges to connect nodes
+    agent_builder.add_edge(START, "llm_call")
+    agent_builder.add_conditional_edges(
+        "llm_call",
+        should_continue,
+        {
+            # Name returned by should_continue : Name of next node to visit
+            "Action": "tool_call",
+            "Next": "next_step",
+            END: END,
+        },
+    )
+    agent_builder.add_edge("tool_call", "llm_call")
+    agent_builder.add_edge("next_step", "llm_call")
+
+    # Compile the agent
+    agent = agent_builder.compile()
+
+    # Invoke
+    steps = tmp_split(case)
+    print(steps)
+    messages = [SystemMessage(content="You are a helpful AI assistant, you are an agent capable of using a variety of tools to test a software."),
+                HumanMessage(content=f"Run this test case step by step and report test result after finished all the steps:\n{steps[0]}")]
+    messages = agent.invoke({"messages": messages, "case_steps": steps, "cur_step": 1}, {"recursion_limit": 100})
+    return messages
+
+
+def tmp_split(case):
+    # TODO
+    import re
+    steps = re.split(r"\d+.\n", case)
+    ret = []
+    for i, step in enumerate(steps[1:]):
+        ret.append(f"Step({i+1}/{len(steps)-1}):\n{step}")
+    return ret
+
+
+def ai_qe_agent(model_name: str, case: str) -> str:
+    response = custom_agent(model_name, case)
     history = ""
     if "messages" in response:
         for msg in response["messages"]:
             history += f"{msg.pretty_repr()}\n"
-    return response['structured_response'], history
+    return None, history
 
 
 if __name__ == "__main__":
