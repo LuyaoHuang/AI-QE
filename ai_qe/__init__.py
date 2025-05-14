@@ -1,4 +1,4 @@
-from .ai_qe import ai_qe_demo
+from .ai_qe import ai_qe_agent
 from .exceptions import InvalidInput
 from .config import Config
 from .extract import extract_info
@@ -64,4 +64,4 @@ class AIQE(object):
     def run_test(self, test_case):
         """ Use AI to execute test case
         """
-        return ai_qe_demo(Config.llm_server_ip, Config.llm_server_port, test_case)
+        return ai_qe_agent(Config.model, test_case)

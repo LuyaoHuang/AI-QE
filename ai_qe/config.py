@@ -4,7 +4,7 @@ import os
 
 class Config(object):
     llm_server_ip = "0.0.0.0"
-    llm_server_port = 5000
+    llm_server_port = 11434
     model = "jacob-ebey/phi4-tools"
 
     # FIXME

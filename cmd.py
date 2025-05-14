@@ -35,13 +35,18 @@ def parse_args():
     )
     parser.add_argument(
         "--server-ip", "-s", dest="server_ip",
-        help="text-generation-webui server IP address",
+        help="ollama server IP address",
         type=str,
     )
     parser.add_argument(
         "--server-port", "-p", dest="server_port",
-        help="text-generation-webui server Port number",
+        help="ollama server Port number",
         type=int,
+    )
+    parser.add_argument(
+        "--model", "-m", dest="model",
+        help="LLM model name",
+        type=str,
     )
     return parser.parse_args()
 
