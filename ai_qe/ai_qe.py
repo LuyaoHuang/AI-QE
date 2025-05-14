@@ -1,126 +1,79 @@
-import sys, tempfile, os, argparse
-from subprocess import call
+import argparse
+from langgraph.prebuilt import create_react_agent
+from langchain_ollama import ChatOllama
+from pydantic import BaseModel, Field
 
 try:
-    from ._utils import llm_json_api, json_reply_parser, run_cmd
+    from ._utils import run_cmd
 except ImportError:
-    from _utils import llm_json_api, json_reply_parser, run_cmd
+    from _utils import run_cmd
 
 
-PROMPT = """[INST] You are a helpful AI assistant, you are an agent capable of using a variety of tools to test a software. Here are a few of the tools available to you:
-
-- CMD: the command line tool should be used when you want to run a shell command and make sure this tool returns your answer to the `output` variable.
-- Create File: the command line tool should be used when you want to write some data in a local file.
-- Step Result: the step result tool must be used to set a test step's result: Pass or Fail. You must use this when you finished one step's testing.
-- Case Result: the case result tool must be used to set a test case's status: Pass or Fail. You must use this when you finished all the steps in one case.
-
-To use these tools you must always respond in JSON format containing `"tool_name"` and `"input"` key-value pairs.
-For example, to run the example test case, "step 1: # echo $HOME Expected Result 1: /root" you need to use the CMD tool like so:
-
-{
-    "tool_name": "CMD",
-    "input": "echo $HOME"
-}
-
-Or to create a file named "tmp.file" under "/root/" dir and write "123" in it, you can use Create File tool:
-
-{
-    "tool_name": "Create File",
-    "input": "/root/tmp.file:123"
-}
-
-Remember, when you have test all the steps in one test case, you can use Case Result tool to set the result:
-
-{
-    "tool_name": "Case Result",
-    "input": "Pass"
-}
-
-If test case have more than one step, you must make sure all the steps have been executed.
-Let's get started. The first test case is as follows.
-%s
-[/INST]"""
+def create_file(file_path: str, data: str) -> str:
+    """Create a file which path is file_path and write data in this file"""
+    with open(file_path, "w+") as fp:
+        fp.write(data)
+    return "success"
 
 
-def create_file(data: str):
-    # FIXME
-    name, context = data[:data.find(":")], data[data.find(":") + 1:]
-    # TODO: check the file path to avoid some security issues
-    with open(name, "w+") as fp:
-        fp.write(context)
+def run_shell_cmd(cmd_line: str) -> str:
+    """Run shell command and return output"""
+    _, ret = run_cmd(cmd_line)
+    return ret
 
 
-def read_tempfile_input(base_str: str):
-    with tempfile.NamedTemporaryFile(suffix=".tmp") as tf:
-        tf.write(str.encode(base_str))
-        tf.flush()
-        call(["vim", tf.name])
-        tf.seek(0)
-        return tf.read().decode()
+class TestResultResponse(BaseModel):
+    """Respond to the user in this format."""
+
+    test_result: str = Field(description="Test Result")
 
 
-def ai_qe_demo(server_ip, server_port, case, mock=False):
-    next_instruction = ""
+def ai_qe_agent(model_name: str, case: str) -> (TestResultResponse, str):
+    model = ChatOllama(model=model_name, temperature=0)
+    agent = create_react_agent(model, tools=[create_file, run_shell_cmd],
+                               response_format=TestResultResponse,
+                               prompt="You are a helpful AI assistant, you are an agent capable of using a variety of tools to test a software.")
+    response = agent.invoke(
+        {"messages": [{"role": "user",
+                       "content": f"Run this test case and report test result: {case}"}]}
+    )
+
     history = ""
-    while True:
-        history, reply = llm_json_api(server_ip, server_port,
-                                      PROMPT % case, next_instruction, history)
-        data = json_reply_parser(reply)
-        tool_name, input = data["tool_name"], data["input"]
-        if mock:
-            print(data["input"])
-        if tool_name == "Case Result":
-            print(f"Case Result: {input}")
-            print(f"History: {history}")
-            next_instruction = "\nTool output: ok"
-            break
-        elif tool_name == "Step Result":
-            next_instruction = "\nTool output: ok"
-        elif tool_name == "CMD":
-            try:
-                if mock:
-                    output = read_tempfile_input(input)
-                else:
-                    _, output = run_cmd(input)
-                next_instruction = f"\nTool output: {output}"
-            except FileNotFoundError:
-                # TODO: give more clearly error
-                next_instruction = "\nTool output: invalid input"
-        elif tool_name == "Create File":
-            if not mock:
-                create_file(input)
-            next_instruction = "\nTool output: ok"
-        elif tool_name == "Search":
-            raise
-
-    return input, history
+    if "messages" in response:
+        for msg in response["messages"]:
+            history += f"{msg.pretty_repr()}\n"
+    return response['structured_response'], history
 
 
 if __name__ == "__main__":
+    from config import Config
+
+
     def parse_args():
         parser = argparse.ArgumentParser(
             description="AI-QE demo"
         )
         parser.add_argument(
             "--server-ip", "-s", dest="server_ip",
-            help="text-generation-webui server IP address",
+            help="Ollama server IP address",
             type=str, required=True
         )
         parser.add_argument(
             "--server-port", "-p", dest="server_port",
-            help="text-generation-webui server Port number",
-            default=5000,
+            help="Ollama server Port number",
+            default=11434,
             type=int,
+        )
+        parser.add_argument(
+            "--model", "-m", dest="model",
+            help="Model name of LLM",
+            default="jacob-ebey/phi4-tools",
+            type=str,
         )
         parser.add_argument(
             "--test-case", "-t", dest="case_file",
             help="Path to the test case file",
             type=str, required=True
-        )
-        parser.add_argument(
-            "--mock", "-m", dest="mock",
-            help="Mock commands execution",
-            action='store_true'
         )
         return parser.parse_args()
 
@@ -128,6 +81,9 @@ if __name__ == "__main__":
         with open(path) as fp:
             return fp.read()
 
+
     args = parse_args()
+    Config.load_from_args(args)
     case = read_file(args.case_file)
-    ai_qe_demo(args.server_ip, args.server_port, case, args.mock)
+    _, ret = ai_qe_agent(args.model, case)
+    print(ret)

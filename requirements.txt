@@ -1,3 +1,5 @@
 gradio
 PyYAML
+langgraph
+langchain-ollama
 git+https://github.com/LuyaoHuang/depend-test-framework@master

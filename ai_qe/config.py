@@ -1,4 +1,5 @@
 import argparse
+import os
 
 
 class Config(object):
@@ -19,3 +20,5 @@ class Config(object):
             cls.llm_server_ip = args.server_ip
         if args.server_port:
             cls.llm_server_port = args.server_port
+
+        os.environ['OLLAMA_HOST'] = f"http://{cls.llm_server_ip}:{cls.llm_server_port}"
