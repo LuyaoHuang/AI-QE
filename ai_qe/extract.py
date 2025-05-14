@@ -1,47 +1,38 @@
-import requests
-import json
+from langchain_ollama import ChatOllama
+from langchain_core.prompts import ChatPromptTemplate
+from pydantic import BaseModel, Field
 
 try:
     from .config import Config
-    from ._utils import llm_json_api, json_reply_parser
 except ImportError:
     from config import Config
-    from _utils import llm_json_api, json_reply_parser
 
 
-PROMPT = """[INST]You are a helpful AI assistant that can help user to extract information in the content. You can extract "test item" and "test feature" in user offered sentence.
-Here "test item" means the key software function user want to test and "test feature" means the software function area user want to test. Your work is extract "test item" and "test feature" to json format.
+class TestObjects(BaseModel):
+    test_item: list[str] = Field(description="Function list user want to test")
+    test_feature: list[str] = Field(description="Function area list user want to test")
+
+
+SYSTEM_PROMPT = """You are a helpful AI assistant that can help user to extract information in the content. You need extract "test item" and "test feature" in user offered sentence.
+Here "test_item" means the key software function user want to test and "test_feature" means the software function area user want to test.
 And here is an example:
 
-User: Give me some test cases focus on NBD migration function in the migration feature.
-Assistant: {
-    "test item": ["NBD migration"],
-    "test feature": ["migration"]
-}
+example_user: Give me some test cases focus on NBD migration function in the migration feature.
+example_assistant: {{"test_item": ["NBD migration"], "test_feature": ["migration"]}}
 
 And if there is no "test item" in users input, you can leave it empty. For example:
-User: I want you test memory feature.
-Assistant: {
-    "test item": [],
-    "test feature": ["memory"]
-}
-
-If user input doesn't have any information related to "test item" and "test feature", you must reply an empty json like this:
-
-User: Have a nice day!
-Assistant: {}
-
-[/INST]
+example_user: I want you test memory feature.
+example_assistant: {{"test_item": [], "test_feature": ["memory"]}}
 """
 
 
 def extract_info(user_input: str) -> dict:
-    _, reply = llm_json_api(Config.llm_server_ip,
-                            Config.llm_server_port,
-                            PROMPT,
-                            "\nUser: " + user_input,
-                            max_tokens=500)
-    return json_reply_parser(reply)
+    llm = ChatOllama(model=Config.model, temperature=0)
+    structured_llm = llm.with_structured_output(TestObjects)
+    prompt = ChatPromptTemplate.from_messages([("system", SYSTEM_PROMPT), ("human", "{input}")])
+    few_shot_structured_llm = prompt | structured_llm
+    ret = few_shot_structured_llm.invoke(user_input)
+    return {"test item": ret.test_item, "test feature": ret.test_feature}
 
 
 if __name__ == "__main__":
