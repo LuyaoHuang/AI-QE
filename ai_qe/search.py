@@ -1,33 +1,31 @@
-import requests
-import json
+from langchain_ollama import ChatOllama
+from langchain_core.prompts import ChatPromptTemplate
+from pydantic import BaseModel, Field
 
 try:
     from .config import Config
-    from ._utils import llm_json_api, json_reply_parser
 except ImportError:
     from config import Config
-    from _utils import llm_json_api, json_reply_parser
 
 
-PROMPT = """[INST]You are a helpful AI assistant that can help user to find matched item in a item list based on the given description from user.
+class MatchItem(BaseModel):
+    item_name: str = Field(description="Matched item name")
+    item_desc: str = Field(description="Matched item description")
+
+
+SYSTEM_PROMPT = """You are a helpful AI assistant that can help user to find matched item in a item list based on the given description from user.
 And here is a item list which include item name and description:
 %s
 
 User will input a string and you must find the matched item based on the item name and description.
-And you must reply a json format message which is a json dictionary include "item_name" and "item_desc". For example:
+And you must reply a format message which is a json dictionary include "item_name" and "item_desc". For example:
 
 User: yyyyy
-Assistant: {
-    "item_name": "xxx",
-    "item_desc": "xxxxxxx"
-}
+Assistant: {{"item_name": "xxx", "item_desc": "xxxxxxx"}}
 
 If you think there is no matched item in item list, you must return empty string as the value of "item_name" and "item_desc", like this:
-Assistant: {
-    "item_name": "",
-    "item_desc": ""
-}
-[/INST]"""
+User: yyyyy
+Assistant: {{"item_name": "", "item_desc": ""}}"""
 
 
 def _build_item_list(item_list: list) -> str:
@@ -38,12 +36,12 @@ def _build_item_list(item_list: list) -> str:
 
 
 def search_item(user_input: str, item_list: list) -> dict:
-    # TODO: use fast search method? PostgresML?
-    _, reply = llm_json_api(Config.llm_server_ip, Config.llm_server_port,
-                            PROMPT % _build_item_list(item_list),
-                            "\nUser: " + user_input,
-                            max_tokens=500)
-    return json_reply_parser(reply)
+    llm = ChatOllama(model=Config.model, temperature=0)
+    structured_llm = llm.with_structured_output(MatchItem)
+    prompt = ChatPromptTemplate.from_messages([("system", SYSTEM_PROMPT % _build_item_list(item_list)), ("human", "{input}")])
+    few_shot_structured_llm = prompt | structured_llm
+    ret = few_shot_structured_llm.invoke(user_input)
+    return {"item_name": ret.item_name, "item_desc": ret.item_desc}
 
 
 if __name__ == "__main__":
