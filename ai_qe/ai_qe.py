@@ -6,7 +6,6 @@ from langchain_ollama import ChatOllama
 from langchain_core.tools import tool
 from langgraph.graph import START, END, StateGraph
 from langgraph.graph.message import add_messages
-from typing_extensions import Literal
 from typing import TypedDict, Annotated, List, Union
 
 from langgraph.graph import MessagesState
@@ -39,6 +38,7 @@ class AgentState(TypedDict):
 
     # case steps
     case_steps: list[str]
+    # current step in case steps
     cur_step: int
 
 
@@ -62,6 +62,7 @@ def custom_agent(model_name, case):
         }
 
     def next_step(state: AgentState):
+        """Returns the next test step to LLM"""
         next_msg = HumanMessage(content=state["case_steps"][state["cur_step"]])
         # print(next_msg)
         return {"messages": [next_msg],
@@ -80,7 +81,7 @@ def custom_agent(model_name, case):
 
 
     # Conditional edge function to route to the tool node or end based upon whether the LLM made a tool call
-    def should_continue(state: AgentState) -> Literal["Action", "Next", END]:
+    def should_continue(state: AgentState) -> str:
         """Decide if we should continue the loop or stop based upon whether the LLM made a tool call"""
 
         messages = state["messages"]
@@ -88,6 +89,7 @@ def custom_agent(model_name, case):
         # If the LLM makes a tool call, then perform an action
         if last_message.tool_calls:
             return "Action"
+        # Perform Next step if there are more steps in the case
         if len(state["case_steps"]) > state["cur_step"]:
             return "Next"
         # Otherwise, we stop (reply to the user)
@@ -120,6 +122,7 @@ def custom_agent(model_name, case):
     # Compile the agent
     agent = agent_builder.compile()
 
+    # Draw graph
     # from langchain_core.runnables.graph import MermaidDrawMethod
     # agent.get_graph().draw_mermaid_png(output_file_path="./graph.png", draw_method=MermaidDrawMethod.PYPPETEER)
 
@@ -132,6 +135,7 @@ def custom_agent(model_name, case):
 
 
 def split_steps(case):
+    """Split test case into steps"""
     steps = re.findall(r"\d+.\n(.*?)(?=\d+\.|$)", case, re.S)
     ret = []
     for i, step in enumerate(steps):
@@ -140,6 +144,7 @@ def split_steps(case):
 
 
 def ai_qe_agent(model_name: str, case: str) -> str:
+    """AI-QE agent"""
     response = custom_agent(model_name, case)
     history = ""
     if "messages" in response:
