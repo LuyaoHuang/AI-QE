@@ -76,7 +76,7 @@ def main():
 
     for i, case in enumerate(cases):
         print(f"Start using AI run case {i+1}")
-        result, history = aiqe_inst.run_test(case)
+        history = aiqe_inst.run_test(case)
         history_file = f"{args.result_dir}/case-{i+1}.log"
         with open(history_file, "w+") as fp:
             fp.write(history)

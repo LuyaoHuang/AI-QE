@@ -57,8 +57,8 @@ class AIQE(object):
         """
         rets = []
         for case in test_cases:
-            result, history = self.run_test(case)
-            ret.append((case, result, history,))
+            history = self.run_test(case)
+            rets.append((case, history,))
         return rets
 
     def run_test(self, test_case):

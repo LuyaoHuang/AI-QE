@@ -83,7 +83,7 @@ with gr.Blocks() as demo:
         results = {}
         for i, case in enumerate(cases):
             progress(i / len(cases), f"Running {case} ({i}/{len(cases)})...")
-            _, results[case] = ai_qe_inst.run_test(case_datas[case])
+            results[case] = ai_qe_inst.run_test(case_datas[case])
         return results, gr.update(choices=results.keys(), value=None), gr.update("Loaded", visible=False), gr.update(visible=True)
 
     def show_group(x, y):

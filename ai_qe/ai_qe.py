@@ -150,7 +150,7 @@ def ai_qe_agent(model_name: str, case: str) -> str:
     if "messages" in response:
         for msg in response["messages"]:
             history += f"{msg.pretty_repr()}\n"
-    return None, history
+    return history
 
 
 if __name__ == "__main__":
@@ -193,5 +193,5 @@ if __name__ == "__main__":
     args = parse_args()
     Config.load_from_args(args)
     case = read_file(args.case_file)
-    _, ret = ai_qe_agent(args.model, case)
+    ret = ai_qe_agent(args.model, case)
     print(ret)
