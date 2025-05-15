@@ -47,18 +47,21 @@ def split_case(case_file: str) -> list:
     return cases
 
 
-def call_deptest(temp_yaml: str) -> (list, str):
-    cases = []
+def call_deptest(temp_yaml: str) -> tuple[list, str]:
+    """ Call deptest with the given temp_yaml file, return a tuple of (cases, log)."""
+    tmp_file_path = None
     try:
-        tmp_file = tempfile.NamedTemporaryFile(delete=False, dir="./test_items/")
-        with open(tmp_file.name, "w") as fp:
-            fp.write(temp_yaml)
-        ret_code, log = run_cmd(f"deptest --template {tmp_file.name}")
+        with tempfile.NamedTemporaryFile(delete=False, dir="./test_items/", mode='w') as tmp_file:
+            tmp_file.write(temp_yaml)
+            tmp_file_path = tmp_file.name
+        ret_code, log = run_cmd(f"deptest --template {tmp_file_path}")
         if ret_code != 0:
             raise Exception(log)
-        return split_case("test_items/case0.file-case"), log
+        case_file_path = "test_items/case0.file-case"
+        return split_case(case_file_path), log
     finally:
-        os.remove(tmp_file.name)
+        if tmp_file_path and os.path.exists(tmp_file_path):
+            os.remove(tmp_file_path)
 
 
 def build_yaml(test_items: list, features: list) -> str:
