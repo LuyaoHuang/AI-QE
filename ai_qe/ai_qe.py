@@ -1,4 +1,6 @@
 import argparse
+import re
+
 from langgraph.prebuilt import create_react_agent
 from langchain_ollama import ChatOllama
 from langchain_core.tools import tool
@@ -56,16 +58,13 @@ def custom_agent(model_name, case):
                 llm_with_tools.invoke(
                     state["messages"]
                 )
-            ],
-            "case_steps": state["case_steps"],
-            "cur_step": state["cur_step"]
+            ]
         }
 
     def next_step(state: AgentState):
         next_msg = HumanMessage(content=state["case_steps"][state["cur_step"]])
-        print(next_msg)
+        # print(next_msg)
         return {"messages": [next_msg],
-                "case_steps": state["case_steps"],
                 "cur_step": state["cur_step"] + 1}
 
 
@@ -77,7 +76,7 @@ def custom_agent(model_name, case):
             tool = tools_by_name[tool_call["name"]]
             observation = tool.invoke(tool_call["args"])
             result.append(ToolMessage(content=observation, tool_call_id=tool_call["id"]))
-        return {"messages": result, "case_steps": state["case_steps"], "cur_step": state["cur_step"]}
+        return {"messages": result}
 
 
     # Conditional edge function to route to the tool node or end based upon whether the LLM made a tool call
@@ -121,22 +120,22 @@ def custom_agent(model_name, case):
     # Compile the agent
     agent = agent_builder.compile()
 
+    # from langchain_core.runnables.graph import MermaidDrawMethod
+    # agent.get_graph().draw_mermaid_png(output_file_path="./graph.png", draw_method=MermaidDrawMethod.PYPPETEER)
+
     # Invoke
-    steps = tmp_split(case)
-    print(steps)
+    steps = split_steps(case)
     messages = [SystemMessage(content="You are a helpful AI assistant, you are an agent capable of using a variety of tools to test a software."),
                 HumanMessage(content=f"Run this test case step by step and report test result after finished all the steps:\n{steps[0]}")]
     messages = agent.invoke({"messages": messages, "case_steps": steps, "cur_step": 1}, {"recursion_limit": 100})
     return messages
 
 
-def tmp_split(case):
-    # TODO
-    import re
-    steps = re.split(r"\d+.\n", case)
+def split_steps(case):
+    steps = re.findall(r"\d+.\n(.*?)(?=\d+\.|$)", case, re.S)
     ret = []
-    for i, step in enumerate(steps[1:]):
-        ret.append(f"Step({i+1}/{len(steps)-1}):\n{step}")
+    for i, step in enumerate(steps):
+        ret.append(f"Step({i+1}/{len(steps)}):\n{step}")
     return ret
 
 
