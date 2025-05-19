@@ -4,17 +4,23 @@ This is a demo project of AI-QE.
 
 AI-QE is a AI based project that use LLM to help QE execute manual test cases.
 
-## Prepare a LLM with text-generation-webui
+## Prepare a LLM with Ollama
 
 1. Prepare a host/vm/container which have NVIDIA GPU and CUDA toolkit
 
-2. Install [text-generation-webui](https://github.com/oobabooga/text-generation-webui)
+2. Install [ollama](https://github.com/ollama/ollama?tab=readme-ov-file#linux)
 
-3. Following the [document](https://github.com/oobabooga/text-generation-webui#downloading-models) to download a Mistral based (model_type is mistral in config.json) LLM from [HuggingFace](https://huggingface.co/spaces/HuggingFaceH4/open_llm_leaderboard)
-
-4. Start text-generation-webui server with option --listen and --api to enable API interface
+3. Pull phi-4 model which enabled tool calling
 ```
-$ python server.py --model NeuralMarcoro14-7B --listen --api
+# ollama pull jacob-ebey/phi4-tools
+```
+
+4. Add "OLLAMA_HOST=0.0.0.0" in /etc/systemd/system/ollama.service and restart service 
+```
+# cat /etc/systemd/system/ollama.service |grep Environment
+Environment="OLLAMA_HOST=0.0.0.0"
+# systemctl daemon-reload
+# systemctl restart ollama.service
 ```
 
 ## Install Requirements
@@ -36,12 +42,12 @@ $ sudo systemctl start virtqemud virtnetworkd
 
 1. Use app.py to start a gradio sever
 ```
-$ python app.py -s {text_generation_webui_server_ip}
+$ python app.py -s {ollama_server_ip}
 ```
 
 Now you can open your browser and access http://localhost:7860 to see the demo.
 
 2. Or use cmd.py to run it via command line
 ```
-$ python cmd.py -r "generate test case test rng device hotplug with rng and memory feature" -s {text_generation_webui_server_ip} -n 2
+$ python cmd.py -r "generate test case test rng device hotplug with rng and memory feature" -s {ollama_server_ip} -n 2
 ```
