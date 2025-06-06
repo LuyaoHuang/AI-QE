@@ -1,8 +1,6 @@
-# AI-QE Demo
+# AI-QE
 
-This is a demo project of AI-QE.
-
-AI-QE is a AI based project that use LLM to help QE execute manual test cases.
+AI-QE is a tool designed for enhancing quality assurance processes. It comprises two core functions that streamline testing workflows. Firstly, it utilizes a case generator framework to automatically generate test cases, ensuring comprehensive coverage and efficiency in identifying potential issues. Secondly, AI-QE leverages the tool calling ability of Large Language Models (LLMs) to execute these test cases and provide summarized results, facilitating quick insights into software performance and reliability.
 
 ## Prepare a LLM with Ollama
 
