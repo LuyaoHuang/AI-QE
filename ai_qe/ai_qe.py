@@ -127,7 +127,8 @@ def custom_agent(model_name, case):
     # agent.get_graph().draw_mermaid_png(output_file_path="./graph.png", draw_method=MermaidDrawMethod.PYPPETEER)
 
     # Invoke
-    steps = split_steps(case)
+    # steps = split_steps(case)
+    steps = tmp_split_steps(case)
     messages = [SystemMessage(content="You are a helpful AI assistant, you are an agent capable of using a variety of tools to test a software."),
                 HumanMessage(content=f"Run this test case step by step and report test result after finished all the steps:\n{steps[0]}")]
     messages = agent.invoke({"messages": messages, "case_steps": steps, "cur_step": 1}, {"recursion_limit": 100})
@@ -140,6 +141,31 @@ def split_steps(case):
     ret = []
     for i, step in enumerate(steps):
         ret.append(f"Step({i+1}/{len(steps)}):\n{step}")
+    return ret
+
+
+def tmp_split_steps(case):
+    # TODO
+    ret = []
+    steps = []
+    tmp_step = []
+    step_id = 1
+    for i, line in enumerate(case.splitlines()):
+        if line.startswith(f"{step_id}."):
+            step_id += 1
+            if tmp_step:
+                steps.append(tmp_step)
+                tmp_step = []
+            continue
+        tmp_step.append(line)
+
+    if tmp_step:
+        steps.append(tmp_step)
+
+    for i, step in enumerate(steps):
+        tmp_str = f"Step({i+1}/{len(steps)}):\n"
+        tmp_str += "\n".join(step)
+        ret.append(tmp_str)
     return ret
 
 
