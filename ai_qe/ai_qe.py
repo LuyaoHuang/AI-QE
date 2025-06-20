@@ -136,7 +136,7 @@ def custom_agent(model_name, case):
 
 def split_steps(case):
     """Split test case into steps"""
-    steps = re.findall(r"\d+.\n(.*?)(?=\d+\.|$)", case, re.S)
+    steps = re.findall(r"\d+\.\n((?:.*?\n)*?)(?=\d+\.|\Z)", case, re.S)
     ret = []
     for i, step in enumerate(steps):
         ret.append(f"Step({i+1}/{len(steps)}):\n{step}")
