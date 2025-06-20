@@ -23,6 +23,11 @@ def parse_args():
         type=str,
     )
     parser.add_argument(
+        "--test-case", "-c", dest="test_cases",
+        help="Path to test cases raw files",
+        type=str, nargs='+',
+    )
+    parser.add_argument(
         "--case-number", "-n", dest="case_num",
         help="Random pick up request number test cases",
         type=int,
@@ -67,8 +72,13 @@ def main():
     elif args.yaml_path:
         print(f"Start generating test cases")
         cases, log = aiqe_inst.gen_test_cases(yaml_file=args.yaml_path)
+    elif args.test_cases:
+        cases = []
+        for case_file in args.test_cases:
+            with open(case_file, "r") as fp:
+                cases.append(fp.read())
     else:
-        print("ERROR: Need use --request or --template-yaml pass some data for case generation")
+        print("ERROR: Need use --request, --template-yaml or --test-case to pass some data for case generation")
         sys.exit(1)
 
     if args.case_num:
