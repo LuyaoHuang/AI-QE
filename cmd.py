@@ -2,6 +2,7 @@
 import argparse
 import sys
 import random
+import logging
 
 from ai_qe.exceptions import InvalidInput
 from ai_qe.config import Config
@@ -53,6 +54,12 @@ def parse_args():
         help="LLM model name",
         type=str,
     )
+    parser.add_argument(
+        '--log-level', "-l", dest="log_level",
+        default='WARNING',
+        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+        help='Set the logging level (default: WARNING)'
+    )
     return parser.parse_args()
 
 
@@ -83,6 +90,11 @@ def main():
 
     if args.case_num:
         cases = random.sample(cases, args.case_num)
+
+    numeric_level = getattr(logging, args.log_level.upper(), None)
+    if not isinstance(numeric_level, int):
+        raise ValueError(f'Invalid log level: {args.log_level}')
+    logging.basicConfig(level=numeric_level, format='%(asctime)s - %(levelname)s - %(message)s')
 
     for i, case in enumerate(cases):
         print(f"Start using AI run case {i+1}")

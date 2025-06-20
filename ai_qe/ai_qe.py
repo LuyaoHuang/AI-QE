@@ -1,4 +1,5 @@
 import argparse
+import logging
 import re
 
 from langgraph.prebuilt import create_react_agent
@@ -53,6 +54,7 @@ def custom_agent(model_name, case):
     def llm_call(state: AgentState):
         """LLM decides whether to call a tool or not"""
 
+        logging.info(f"Enter llm_call node and next message is: {state['messages'][-1]}")
         return {
             "messages": [
                 llm_with_tools.invoke(
@@ -63,8 +65,8 @@ def custom_agent(model_name, case):
 
     def next_step(state: AgentState):
         """Returns the next test step to LLM"""
+        logging.info(f"Enter next_step node and next step is: {state['case_steps'][state['cur_step']]}")
         next_msg = HumanMessage(content=state["case_steps"][state["cur_step"]])
-        # print(next_msg)
         return {"messages": [next_msg],
                 "cur_step": state["cur_step"] + 1}
 
@@ -72,6 +74,7 @@ def custom_agent(model_name, case):
     def tool_node(state: AgentState):
         """Performs the tool call"""
 
+        logging.info(f"Enter tool_node node and current tool calls: {state['messages'][-1].tool_calls}")
         result = []
         for tool_call in state["messages"][-1].tool_calls:
             tool = tools_by_name[tool_call["name"]]
@@ -84,6 +87,7 @@ def custom_agent(model_name, case):
     def should_continue(state: AgentState) -> str:
         """Decide if we should continue the loop or stop based upon whether the LLM made a tool call"""
 
+        logging.info(f"Enter should_continue node")
         messages = state["messages"]
         last_message = messages[-1]
         # If the LLM makes a tool call, then perform an action

@@ -6,6 +6,7 @@ class Config(object):
     llm_server_ip = "0.0.0.0"
     llm_server_port = 11434
     model = "jacob-ebey/phi4-tools"
+    verbose = False
 
     # FIXME
     test_item_modules = ["memory_doc", "rng_doc", "vm_basic_doc"]
