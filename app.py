@@ -25,6 +25,11 @@ def parse_args():
         type=int,
     )
     parser.add_argument(
+        "--config-yaml", "-f", dest="config_yaml",
+        help="Path to the config yaml file",
+        type=str,
+    )
+    parser.add_argument(
         "--model", "-m", dest="model",
         help="LLM model name",
         type=str,
@@ -33,6 +38,8 @@ def parse_args():
 
 
 args = parse_args()
+if args.config_yaml:
+    Config.load_from_yaml(args.config_yaml)
 Config.load_from_args(args)
 
 ai_qe_inst = AIQE()
