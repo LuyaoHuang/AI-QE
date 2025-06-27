@@ -9,12 +9,12 @@ AI-QE is a tool designed for enhancing quality assurance processes. It comprises
 2. Install [ollama](https://github.com/ollama/ollama?tab=readme-ov-file#linux)
 
 3. Pull phi-4 model which enabled tool calling
-```
+```bash
 # ollama pull jacob-ebey/phi4-tools
 ```
 
 4. Add "OLLAMA_HOST=0.0.0.0" in /etc/systemd/system/ollama.service and restart service 
-```
+```bash
 # cat /etc/systemd/system/ollama.service |grep Environment
 Environment="OLLAMA_HOST=0.0.0.0"
 # systemctl daemon-reload
@@ -24,12 +24,12 @@ Environment="OLLAMA_HOST=0.0.0.0"
 ## Install Requirements
 
 1. First install python requirements
-```
+```bash
 $ pip install -r requirements.txt
 ```
 
 2. If you want to use demo codes to test libvirt RNG feature, you need install virt related rpms
-```
+```bash
 $ sudo dnf install -y libvirt qemu-kvm
 $ sudo systemctl start virtqemud virtnetworkd
 ```
@@ -39,13 +39,27 @@ $ sudo systemctl start virtqemud virtnetworkd
 2 way to show the demo:
 
 1. Use app.py to start a gradio sever
-```
+```bash
 $ python app.py -s {ollama_server_ip}
 ```
 
 Now you can open your browser and access http://localhost:7860 to see the demo.
 
 2. Or use cmd.py to run it via command line
-```
+```bash
 $ python cmd.py -r "generate test case test rng device hotplug with rng and memory feature" -s {ollama_server_ip} -n 2
+```
+
+3. you can also pass manual test cases to cmd.py and use AI-QE to run them
+```bash
+$ python cmd.py -s {ollama_server_ip} -c case1.txt -c case2.txt
+```
+
+## Set Log Level
+
+To set the log level when using `cmd.py`, you can specify it with the `--log-level` option. Available levels are DEBUG, INFO, WARNING, ERROR, and CRITICAL (default is WARNING).
+
+Example:
+```bash
+$ python cmd.py -r "generate test case" --log-level DEBUG
 ```
