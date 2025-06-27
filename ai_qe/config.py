@@ -1,5 +1,7 @@
 import argparse
 import os
+import yaml
+import logging
 
 
 class Config(object):
@@ -14,15 +16,33 @@ class Config(object):
 
     @classmethod
     def load_from_yaml(cls, yaml_file: str):
-        pass
+        logging.info(f"Config loaded from {yaml_file}")
+        with open(yaml_file, 'r') as file:
+            data = yaml.safe_load(file)
+
+        for key, value in data.items():
+            if hasattr(cls, key):
+                expected_type = type(getattr(cls, key))
+
+                # Verify the value type
+                if isinstance(value, expected_type) or (expected_type is str and isinstance(value, (str, int))):
+                    setattr(cls, key, value)
+                    logging.debug(f"Update config {key}={value}")
+                else:
+                    logging.warning(f"Type mismatch for {key}: Expected {expected_type}, got {type(value)}")
 
     @classmethod
     def load_from_args(cls, args: argparse.Namespace):
+        logging.info("Config loaded from arguments")
         if args.server_ip:
             cls.llm_server_ip = args.server_ip
+            logging.debug(f"Update config llm_server_ip={args.server_ip}")
         if args.server_port:
             cls.llm_server_port = args.server_port
+            logging.debug(f"Update config llm_server_port={args.server_port}")
         if args.model:
             cls.model = args.model
+            logging.debug(f"Update config model={args.model}")
 
+        # TODO
         os.environ['OLLAMA_HOST'] = f"http://{cls.llm_server_ip}:{cls.llm_server_port}"

@@ -55,6 +55,11 @@ def parse_args():
         type=str,
     )
     parser.add_argument(
+        "--config-yaml", "-f", dest="config_yaml",
+        help="Path to the config yaml file",
+        type=str,
+    )
+    parser.add_argument(
         '--log-level', "-l", dest="log_level",
         default='WARNING',
         choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
@@ -65,6 +70,14 @@ def parse_args():
 
 def main():
     args = parse_args()
+
+    numeric_level = getattr(logging, args.log_level.upper(), None)
+    if not isinstance(numeric_level, int):
+        raise ValueError(f'Invalid log level: {args.log_level}')
+    logging.basicConfig(level=numeric_level, format='%(asctime)s - %(levelname)s - %(message)s')
+
+    if args.config_yaml:
+        Config.load_from_yaml(args.config_yaml)
     Config.load_from_args(args)
     aiqe_inst = AIQE()
 
@@ -90,11 +103,6 @@ def main():
 
     if args.case_num:
         cases = random.sample(cases, args.case_num)
-
-    numeric_level = getattr(logging, args.log_level.upper(), None)
-    if not isinstance(numeric_level, int):
-        raise ValueError(f'Invalid log level: {args.log_level}')
-    logging.basicConfig(level=numeric_level, format='%(asctime)s - %(levelname)s - %(message)s')
 
     for i, case in enumerate(cases):
         print(f"Start using AI run case {i+1}")
