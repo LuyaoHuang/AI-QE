@@ -1,11 +1,12 @@
-from langchain_ollama import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 
 try:
     from .config import Config
+    from .llm_backend import prepare_llm
 except ImportError:
     from config import Config
+    from llm_backend import prepare_llm
 
 
 class TestObjects(BaseModel):
@@ -27,7 +28,7 @@ example_assistant: {{"test_item": [], "test_feature": ["memory"]}}
 
 
 def extract_info(user_input: str) -> dict:
-    llm = ChatOllama(model=Config.model, temperature=0)
+    llm = prepare_llm(Config.model)
     structured_llm = llm.with_structured_output(TestObjects)
     prompt = ChatPromptTemplate.from_messages([("system", SYSTEM_PROMPT), ("human", "{input}")])
     few_shot_structured_llm = prompt | structured_llm

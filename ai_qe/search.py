@@ -1,11 +1,12 @@
-from langchain_ollama import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 
 try:
     from .config import Config
+    from .llm_backend import prepare_llm
 except ImportError:
     from config import Config
+    from llm_backend import prepare_llm
 
 
 class MatchItem(BaseModel):
@@ -36,7 +37,7 @@ def _build_item_list(item_list: list) -> str:
 
 
 def search_item(user_input: str, item_list: list) -> dict:
-    llm = ChatOllama(model=Config.model, temperature=0)
+    llm = prepare_llm(Config.model)
     structured_llm = llm.with_structured_output(MatchItem)
     prompt = ChatPromptTemplate.from_messages([("system", SYSTEM_PROMPT % _build_item_list(item_list)), ("human", "{input}")])
     few_shot_structured_llm = prompt | structured_llm

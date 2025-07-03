@@ -3,7 +3,6 @@ import logging
 import re
 
 from langgraph.prebuilt import create_react_agent
-from langchain_ollama import ChatOllama
 from langchain_core.tools import tool
 from langgraph.graph import START, END, StateGraph
 from langgraph.graph.message import add_messages
@@ -14,8 +13,10 @@ from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, To
 
 try:
     from ._utils import run_cmd
+    from .llm_backend import prepare_llm
 except ImportError:
     from _utils import run_cmd
+    from llm_backend import prepare_llm
 
 
 @tool
@@ -44,7 +45,7 @@ class AgentState(TypedDict):
 
 
 def custom_agent(model_name, case):
-    llm = ChatOllama(model=model_name, temperature=0)
+    llm = prepare_llm(model_name)
     # Augment the LLM with tools
     tools = [create_file, run_shell_cmd]
     tools_by_name = {tool.name: tool for tool in tools}
