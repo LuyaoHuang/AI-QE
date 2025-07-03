@@ -33,44 +33,6 @@ def load_module_data(file_list: list, dir_path: str) -> object:
                "doc": module.__doc__}
 
 
-def llm_json_api(server_ip: str, server_port: int, prompt: str,
-                 instruction: str, old_context: str = "", max_tokens: int = 8000) -> (str, str):
-    """ Use special prompt to make LLM return a json reply for tool calling
-    """
-    if old_context:
-        input_str = old_context
-    else:
-        input_str = prompt
-
-    if instruction:
-        input_str += instruction
-
-    # TODO: this is for json api
-    input_str += "\nAssistant: {"
-
-
-    response = requests.post(f"http://{server_ip}:{server_port}/v1/completions", json={
-        "prompt": input_str,
-        "max_tokens": max_tokens,
-    }).json()
-
-    reply = response["choices"][0]["text"]
-    # TODO: only accept 1 json
-    json_reply = "{" + reply[:reply.find("}") + 1]
-    full_reply = input_str + reply[:reply.find("}") + 1]
-    return full_reply, json_reply
-
-
-def json_reply_parser(data: str) -> (str, str):
-    #TODO: remove it
-    data = data.replace("\n", " ")
-    try:
-        return json.loads(data)
-    except:
-        print(data)
-        raise
-
-
 def run_cmd(cmd_line: str) -> (int, str):
     """ Use subprocess to run shell command
     """
