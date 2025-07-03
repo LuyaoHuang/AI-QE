@@ -3,8 +3,6 @@ import importlib
 import sys
 import subprocess
 import inspect
-import requests
-import json
 
 
 def load_modules(modules_list: list, module_path: str='.') -> object:
