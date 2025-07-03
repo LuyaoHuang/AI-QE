@@ -1,5 +1,4 @@
 import argparse
-import os
 import yaml
 import logging
 
@@ -43,6 +42,3 @@ class Config(object):
         if args.model:
             cls.model = args.model
             logging.debug(f"Update config model={args.model}")
-
-        # TODO
-        os.environ['OLLAMA_HOST'] = f"http://{cls.llm_server_ip}:{cls.llm_server_port}"

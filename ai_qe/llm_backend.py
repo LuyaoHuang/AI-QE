@@ -1,6 +1,11 @@
 import os
 import logging
 
+try:
+    from .config import Config
+except ImportError:
+    from config import Config
+
 
 def prepare_llm(model_name):
     if model_name.startswith("gemini"):
@@ -26,6 +31,10 @@ def prepare_llm(model_name):
         except ImportError:
             logging.error("Need install langchain_ollama before use it")
             raise
+
+        # If not set OLLAMA_HOST, use default config
+        if not os.environ['OLLAMA_HOST']:
+            os.environ['OLLAMA_HOST'] = f"http://{Config.llm_server_ip}:{Config.llm_server_port}"
         llm = ChatOllama(model=model_name, temperature=0)
     logging.info(f"Load {model_name} LLM")
     return llm
