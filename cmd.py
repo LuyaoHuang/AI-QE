@@ -85,7 +85,7 @@ def main():
         try:
             info = aiqe_inst.extract_info(args.request_str)
         except InvalidInput as e:
-            # TODO
+            logging.error(f"Cannot extract information from {args.request_str}")
             raise
         print(f"Start generating test cases")
         cases, log = aiqe_inst.gen_test_cases(info["test item"], info["test feature"])
