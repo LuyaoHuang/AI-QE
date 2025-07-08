@@ -40,19 +40,19 @@ $ sudo systemctl start virtqemud virtnetworkd
 
 1. Use app.py to start a gradio sever
 ```bash
-$ python app.py -s {ollama_server_ip}
+$ ./ai-qe -s {ollama_server_ip}
 ```
 
 Now you can open your browser and access http://localhost:7860 to see the demo.
 
 2. Or use cmd.py to run it via command line
 ```bash
-$ python cmd.py -r "generate test case test rng device hotplug with rng and memory feature" -s {ollama_server_ip} -n 2
+$ ./ai-qe -r "generate test case test rng device hotplug with rng and memory feature" -s {ollama_server_ip} -n 2
 ```
 
 3. you can also pass manual test cases to cmd.py and use AI-QE to run them
 ```bash
-$ python cmd.py -s {ollama_server_ip} -c case1.txt -c case2.txt
+$ ./ai-qe -s {ollama_server_ip} -c case1.txt -c case2.txt
 ```
 
 ## Set Log Level
@@ -61,5 +61,5 @@ To set the log level when using `cmd.py`, you can specify it with the `--log-lev
 
 Example:
 ```bash
-$ python cmd.py -r "generate test case" --log-level DEBUG
+$ ./ai-qe -r "generate test case" --log-level DEBUG
 ```

@@ -7,6 +7,7 @@ import logging
 from ai_qe.exceptions import InvalidInput
 from ai_qe.config import Config
 from ai_qe import AIQE
+from ai_qe.web_app import start_app
 
 
 def parse_args():
@@ -65,6 +66,11 @@ def parse_args():
         choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
         help='Set the logging level (default: WARNING)'
     )
+    parser.add_argument(
+        "--web", "-w", dest="web",
+        help="Run the web interface",
+        action='store_true',
+    )
     return parser.parse_args()
 
 
@@ -79,6 +85,10 @@ def main():
     if args.config_yaml:
         Config.load_from_yaml(args.config_yaml)
     Config.load_from_args(args)
+    if args.web:
+        start_app()
+        sys.exit(0)
+
     aiqe_inst = AIQE()
 
     if args.request_str:
