@@ -9,22 +9,48 @@ except ImportError:
 
 def prepare_llm(model_name):
     if model_name.startswith("gemini"):
-        try:
-            from langchain_google_genai import ChatGoogleGenerativeAI
-        except ImportError:
-            logging.error("Need install langchain_google_genai before use it")
-            raise
+        if Config.use_vertex_ai:
+            try:
+                from langchain_google_vertexai import ChatVertexAI
+                from google.oauth2.service_account import Credentials
+                import vertexai
+            except ImportError:
+                logging.error("Need install langchain_google_vertexai before use it")
+                raise
 
-        api_key = os.getenv("GEMINI_API_KEY")
-        if not api_key:
-            raise ValueError("Cannot find GEMINI_API_KEY in env")
+            auth_file = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+            if not auth_file:
+                raise ValueError("Cannot find GOOGLE_APPLICATION_CREDENTIALS in env")
+            project_name = os.getenv("GOOGLE_CLOUD_PROJECT")
+            if not project_name:
+                raise ValueError("Cannot find GOOGLE_CLOUD_PROJECT in env")
+            location = os.getenv("GOOGLE_CLOUD_LOCATION")
+            if not location:
+                raise ValueError("Cannot find GOOGLE_CLOUD_LOCATION in env")
+            credentials = Credentials.from_service_account_file(auth_file)
+            vertexai.init(project=project_name, location=location, credentials=credentials)
+            llm = ChatVertexAI(
+                model=model_name,
+                temperature=1.0,
+                max_retries=2,
+            )
+        else:
+            try:
+                from langchain_google_genai import ChatGoogleGenerativeAI
+            except ImportError:
+                logging.error("Need install langchain_google_genai before use it")
+                raise
 
-        llm = ChatGoogleGenerativeAI(
-            model= model_name,
-            temperature=1.0,
-            max_retries=2,
-            google_api_key=api_key,
-        )
+            api_key = os.getenv("GEMINI_API_KEY")
+            if not api_key:
+                raise ValueError("Cannot find GEMINI_API_KEY in env")
+
+            llm = ChatGoogleGenerativeAI(
+                model=model_name,
+                temperature=1.0,
+                max_retries=2,
+                google_api_key=api_key,
+            )
     else:
         try:
             from langchain_ollama import ChatOllama

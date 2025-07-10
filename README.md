@@ -138,6 +138,7 @@ Here's a quick reference for common `ai-qe` arguments:
 *   `-f {path}`, `--config-yaml {path}`: Path to a configuration YAML file.
 *   `-l {level}`, `--log-level {level}`: Set the logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`; default: `WARNING`).
 *   `-w`, `--web`: Run the web interface (starts a Gradio server).
+*   `--use-vertex-ai`: Use Vertex AI for Gemini models (default: False).
 
 ## Set Log Level
 

@@ -8,6 +8,7 @@ class Config(object):
     llm_server_port = 11434
     model = "jacob-ebey/phi4-tools"
     verbose = False
+    use_vertex_ai = False
 
     # FIXME
     test_item_modules = ["memory_doc", "rng_doc", "vm_basic_doc"]
@@ -42,3 +43,6 @@ class Config(object):
         if args.model:
             cls.model = args.model
             logging.debug(f"Update config model={args.model}")
+        if args.use_vertex_ai:
+            cls.use_vertex_ai = args.use_vertex_ai
+            logging.debug(f"Update config use_vertex_ai={args.use_vertex_ai}")
