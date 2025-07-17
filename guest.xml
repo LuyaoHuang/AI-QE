@@ -1,3 +1,4 @@
+<!-- This is an example xml of VM configuration, update it if you need some extra configuration -->
 <domain type='kvm'>
   <name>vm1</name>
   <uuid>2e2f2556-5500-47d3-87c6-278d00793c3c</uuid>
