@@ -12,48 +12,61 @@ from ai_qe.web_app import start_app
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="AI-QE demo command line tool"
+        description="AI-QE command line tool"
     )
-    parser.add_argument(
+
+    # Group for Test Case Generation
+    gen_group = parser.add_argument_group("Test Case Generation Options")
+    gen_group.add_argument(
         "--request", "-r", dest="request_str",
         help="Natural language request for cases generation",
         type=str,
     )
-    parser.add_argument(
+    gen_group.add_argument(
         "--template-yaml", "-t", dest="yaml_path",
         help="Path to the template yaml file for cases generation",
         type=str,
     )
-    parser.add_argument(
+    gen_group.add_argument(
         "--test-case", "-c", dest="test_cases",
         help="Path to test cases raw files",
         type=str, nargs='+',
     )
-    parser.add_argument(
+    gen_group.add_argument(
         "--case-number", "-n", dest="case_num",
         help="Random pick up request number test cases",
         type=int,
     )
-    parser.add_argument(
-        "--results-dir", "-d", dest="result_dir",
-        help="Directory path which used to store result files",
-        type=str,
-        default="./results"
-    )
-    parser.add_argument(
+
+    # Group for LLM Configuration
+    server_group = parser.add_argument_group("LLM Configuration Options")
+    server_group.add_argument(
         "--server-ip", "-s", dest="server_ip",
         help="ollama server IP address",
         type=str,
     )
-    parser.add_argument(
+    server_group.add_argument(
         "--server-port", "-p", dest="server_port",
         help="ollama server Port number",
         type=int,
     )
-    parser.add_argument(
+    server_group.add_argument(
         "--model", "-m", dest="model",
         help="LLM model name",
         type=str,
+    )
+    server_group.add_argument(
+        "--use-vertex-ai", dest="use_vertex_ai",
+        help="Use Vertex AI when use Gemini models",
+        action='store_true',
+    )
+
+    # Other general options
+    gen_group.add_argument(
+        "--results-dir", "-d", dest="result_dir",
+        help="Directory path which used to store result files",
+        type=str,
+        default="./results"
     )
     parser.add_argument(
         "--config-yaml", "-f", dest="config_yaml",
@@ -69,11 +82,6 @@ def parse_args():
     parser.add_argument(
         "--web", "-w", dest="web",
         help="Run the web interface",
-        action='store_true',
-    )
-    parser.add_argument(
-        "--use-vertex-ai", dest="use_vertex_ai",
-        help="Use Vertex AI when use Gemini models",
         action='store_true',
     )
     return parser.parse_args()
