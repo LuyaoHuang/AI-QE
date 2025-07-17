@@ -1,6 +1,6 @@
 """VM memory related test items
 """
-from utils import STEPS, RESULT, SETUP
+from utils import STEPS, RESULT
 
 
 def hot_set_guest_mem(params, env):

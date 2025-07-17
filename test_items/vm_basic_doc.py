@@ -1,6 +1,6 @@
 """VM basic test items
 """
-from utils import STEPS, RESULT, SETUP
+from utils import STEPS, RESULT
 
 
 def start_guest(params, env):

@@ -1,5 +1,5 @@
-from depend_test_framework.test_object import Action, CheckPoint, ObjectFailedException, CleanUpMethod
-from depend_test_framework.dependency import Provider, Consumer, ExtraDepend, CustomParams
+from depend_test_framework.test_object import Action, CheckPoint
+from depend_test_framework.dependency import Provider, Consumer
 from depend_test_framework.base_class import ParamsRequire
 
 
