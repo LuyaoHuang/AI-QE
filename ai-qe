@@ -62,7 +62,7 @@ def parse_args():
     )
 
     # Other general options
-    gen_group.add_argument(
+    parser.add_argument(
         "--results-dir", "-d", dest="result_dir",
         help="Directory path which used to store result files",
         type=str,
