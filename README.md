@@ -13,6 +13,7 @@ AI-QE is a tool designed to enhance quality assurance processes by leveraging La
     *   [Setting up an LLM](#setting-up-an-llm)
         *   [Using Ollama](#using-ollama)
         *   [Using Gemini Models](#using-gemini-models)
+        *   [Using Claude Models](#using-claude-models)
 *   [Usage](#usage)
     *   [Running the Web Interface](#running-the-web-interface)
     *   [Running via Command Line](#running-via-command-line)
@@ -42,7 +43,7 @@ $ sudo systemctl start virtqemud virtnetworkd
 
 ### Setting up an LLM
 
-AI-QE supports both local Ollama models and Google's Gemini models. Choose the setup that best fits your needs.
+AI-QE supports local Ollama models, Google's Gemini models, and Claude models via Google Vertex AI. Choose the setup that best fits your needs.
 
 #### Using Ollama
 
@@ -77,6 +78,26 @@ If you prefer to use Google's Gemini models, you only need an API key. This opti
     ```
     (Replace `YOUR_API_KEY_HERE` with your actual key.)
 
+#### Using Claude Models
+
+Claude models are supported through Google Vertex AI, providing access to Anthropic's Claude models via Google Cloud infrastructure.
+
+1.  **Set up Google Cloud Project**: Ensure you have a Google Cloud project with Vertex AI enabled.
+2.  **Configure Authentication**: Set up authentication for Google Cloud (e.g., using service account credentials or `gcloud auth application-default login`).
+3.  **Set Environment Variables**: Before running `ai-qe`, set the required environment variables:
+
+    ```bash
+    $ export ANTHROPIC_VERTEX_PROJECT_ID=your-gcp-project-id
+    $ export CLOUD_ML_REGION=your-preferred-region
+    ```
+    (Replace `your-gcp-project-id` with your actual Google Cloud project ID and `your-preferred-region` with your preferred region, e.g., `us-central1`.)
+
+4.  **Install Required Dependencies**: Ensure you have the necessary packages installed:
+
+    ```bash
+    $ pip install langchain_google_vertexai anthropic
+    ```
+
 ## Usage
 
 AI-QE can be run either through a web-based Gradio interface or directly from the command line.
@@ -97,6 +118,15 @@ This starts a local web server, allowing you to interact with AI-QE via your bro
     ```bash
     $ export GEMINI_API_KEY=XXXXXXXX
     $ ./ai-qe -w -m gemini-2.5-flash
+    ```
+    Then, open your browser and access `http://localhost:7860`.
+
+*   **With Claude**: Ensure environment variables are set and specify the Claude model.
+
+    ```bash
+    $ export ANTHROPIC_VERTEX_PROJECT_ID=your-gcp-project-id
+    $ export CLOUD_ML_REGION=your-preferred-region
+    $ ./ai-qe -w -m claude-3-5-sonnet@20241022
     ```
     Then, open your browser and access `http://localhost:7860`.
 
@@ -123,6 +153,14 @@ This allows for direct execution of test case generation and execution.
     $ ./ai-qe -m gemini-2.5-flash -c case1.txt -c case2.txt
     ```
 
+*   **Execute Manual Test Cases (Claude Example)**: Using Claude models.
+
+    ```bash
+    $ export ANTHROPIC_VERTEX_PROJECT_ID=your-gcp-project-id
+    $ export CLOUD_ML_REGION=your-preferred-region
+    $ ./ai-qe -m claude-3-5-sonnet@20241022 -c case1.txt -c case2.txt
+    ```
+
 ## Command-Line Arguments
 
 Here's a quick reference for common `ai-qe` arguments:
@@ -134,7 +172,7 @@ Here's a quick reference for common `ai-qe` arguments:
 *   `-d {path}`, `--results-dir {path}`: Directory path to store result files (default: `./results`).
 *   `-s {ip}`, `--server-ip {ip}`: Ollama server IP address (required for Ollama).
 *   `-p {port}`, `--server-port {port}`: Ollama server Port number.
-*   `-m {model_name}`, `--model {model_name}`: LLM model name (e.g., `gemini-2.5-flash`, `jacob-ebey/phi4-tools`).
+*   `-m {model_name}`, `--model {model_name}`: LLM model name (e.g., `gemini-2.5-flash`, `jacob-ebey/phi4-tools`, `claude-3-5-sonnet@20241022`).
 *   `-f {path}`, `--config-yaml {path}`: Path to a configuration YAML file.
 *   `-l {level}`, `--log-level {level}`: Set the logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`; default: `WARNING`).
 *   `-w`, `--web`: Run the web interface (starts a Gradio server).
