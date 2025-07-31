@@ -51,6 +51,28 @@ def prepare_llm(model_name):
                 max_retries=2,
                 google_api_key=api_key,
             )
+    elif model_name.startswith("claude"):
+        try:
+            from langchain_google_vertexai.model_garden import ChatAnthropicVertex
+        except ImportError:
+            logging.error("Need install langchain_google_vertexai and anthropic before use it")
+            raise
+
+        project_name = os.getenv("ANTHROPIC_VERTEX_PROJECT_ID")
+        if not project_name:
+            raise ValueError("Cannot find ANTHROPIC_VERTEX_PROJECT_ID in env")
+
+        location = os.getenv("CLOUD_ML_REGION")
+        if not location:
+            raise ValueError("Cannot find CLOUD_ML_REGION in env")
+
+        llm = ChatAnthropicVertex(
+            model_name=model_name,
+            project=project_name,
+            location=location,
+            temperature=1.0,
+            max_retries=2,
+        )
     else:
         try:
             from langchain_ollama import ChatOllama
