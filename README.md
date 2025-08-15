@@ -161,6 +161,68 @@ This allows for direct execution of test case generation and execution.
     $ ./ai-qe -m claude-3-5-sonnet@20241022 -c case1.txt -c case2.txt
     ```
 
+## Remote Test Execution
+
+AI-QE supports executing test cases on remote hosts via SSH, enabling distributed testing and execution in isolated environments.
+
+### Configuration
+
+Remote execution can be configured via the configuration YAML file or command-line arguments.
+
+#### Via Configuration File
+
+Add the following section to your `default_config.yaml`:
+
+```yaml
+remote_execution:
+  enabled: true
+  host: "test-server.example.com"
+  port: 22
+  username: "testuser"
+  key_file: "/home/user/.ssh/id_rsa"  # SSH private key path
+  password: ""                        # Alternative to key_file
+  remote_work_dir: "/tmp/ai-qe-remote"
+  sync_files: true
+```
+
+#### Via Command Line
+
+```bash
+$ ./ai-qe -s {ollama_server_ip} -c test_case.txt --remote-host test-server.example.com --remote-user testuser
+```
+
+### Authentication Methods
+
+AI-QE supports two SSH authentication methods:
+
+1. **SSH Key Authentication** (Recommended):
+   ```yaml
+   key_file: "/path/to/private/key"
+   ```
+
+2. **Password Authentication**:
+   ```yaml
+   password: "your_password"
+   ```
+
+### Features
+
+- **Automatic Directory Management**: Creates remote working directories as needed
+- **File Synchronization**: Automatically transfers files between local and remote hosts
+- **Secure Communication**: All operations use SSH encryption
+- **Error Handling**: Comprehensive error handling and logging for remote operations
+- **Seamless Integration**: Same AI agent workflow works for both local and remote execution
+
+### Example Usage
+
+```bash
+# Execute test case on remote host with SSH key
+$ ./ai-qe -s localhost -c test_case.txt --remote-host production-server.com --remote-user deploy
+
+# Generate and execute test cases remotely
+$ ./ai-qe -r "test network connectivity" -s localhost --remote-host test-env.lab.com --remote-user tester
+```
+
 ## Command-Line Arguments
 
 Here's a quick reference for common `ai-qe` arguments:
@@ -177,6 +239,8 @@ Here's a quick reference for common `ai-qe` arguments:
 *   `-l {level}`, `--log-level {level}`: Set the logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`; default: `WARNING`).
 *   `-w`, `--web`: Run the web interface (starts a Gradio server).
 *   `--use-vertex-ai`: Use Vertex AI for Gemini models (default: False).
+*   `--remote-host {host}`: Remote host for test execution (enables remote mode).
+*   `--remote-user {user}`: Remote host username for SSH authentication.
 
 ## Set Log Level
 

@@ -34,11 +34,13 @@ from typing import TypedDict, Annotated, List, Union
 from langchain_core.messages import SystemMessage, HumanMessage, ToolMessage
 
 try:
-    from ._utils import run_cmd
+    from ._utils import run_cmd, run_remote_cmd, RemoteExecutor
     from .llm_backend import prepare_llm
+    from .config import Config
 except ImportError:
-    from _utils import run_cmd
+    from _utils import run_cmd, run_remote_cmd, RemoteExecutor
     from llm_backend import prepare_llm
+    from config import Config
 
 
 @tool
@@ -48,7 +50,7 @@ def create_file(file_path: str, data: str) -> str:
 
     This tool allows the AI agent to create files during test execution,
     which is useful for generating test artifacts, configuration files,
-    or any other files required by the test case.
+    or any other files required by the test case. Supports both local and remote execution.
 
     Args:
         file_path (str): The absolute or relative path where the file should be created
@@ -60,9 +62,32 @@ def create_file(file_path: str, data: str) -> str:
     Raises:
         IOError: If the file cannot be created or written to
     """
-    with open(file_path, "w+") as fp:
-        fp.write(data)
-    return "success"
+    if Config.remote_execution.get("enabled", False):
+        # Remote execution
+        remote_work_dir = Config.remote_execution.get("remote_work_dir", "/tmp/ai-qe-remote")
+        remote_path = f"{remote_work_dir}/{file_path}" if not file_path.startswith('/') else file_path
+
+        executor = RemoteExecutor(
+            host=Config.remote_execution.get("host"),
+            username=Config.remote_execution.get("username"),
+            port=Config.remote_execution.get("port", 22),
+            key_file=Config.remote_execution.get("key_file"),
+            password=Config.remote_execution.get("password")
+        )
+
+        if executor.connect():
+            try:
+                success = executor.create_remote_file(remote_path, data)
+                return "success" if success else "failed to create remote file"
+            finally:
+                executor.disconnect()
+        else:
+            return "failed to connect to remote host"
+    else:
+        # Local execution
+        with open(file_path, "w+") as fp:
+            fp.write(data)
+        return "success"
 
 
 @tool
@@ -72,7 +97,7 @@ def run_shell_cmd(cmd_line: str) -> str:
 
     This tool enables the AI agent to run system commands as part of test execution,
     allowing for setup, cleanup, verification, and other operations that require
-    interaction with the operating system.
+    interaction with the operating system. Supports both local and remote execution.
 
     Args:
         cmd_line (str): The shell command to execute
@@ -81,11 +106,18 @@ def run_shell_cmd(cmd_line: str) -> str:
         str: The output from the command execution (stdout)
 
     Note:
-        Uses the run_cmd utility function from _utils module which handles
-        command execution and error handling.
+        Uses the run_cmd or run_remote_cmd utility functions from _utils module which handle
+        command execution and error handling for local and remote hosts respectively.
     """
-    _, ret = run_cmd(cmd_line)
-    return ret
+    if Config.remote_execution.get("enabled", False):
+        # Remote execution
+        remote_work_dir = Config.remote_execution.get("remote_work_dir", "/tmp/ai-qe-remote")
+        _, ret = run_remote_cmd(cmd_line, Config.remote_execution, cwd=remote_work_dir)
+        return ret
+    else:
+        # Local execution
+        _, ret = run_cmd(cmd_line)
+        return ret
 
 
 class AgentState(TypedDict):
@@ -382,6 +414,16 @@ if __name__ == "__main__":
             "--test-case", "-t", dest="case_file",
             help="Path to the test case file",
             type=str, required=True
+        )
+        parser.add_argument(
+            "--remote-host", dest="remote_host",
+            help="Remote host for test execution (enables remote mode)",
+            type=str
+        )
+        parser.add_argument(
+            "--remote-user", dest="remote_user",
+            help="Remote host username",
+            type=str
         )
         return parser.parse_args()
 

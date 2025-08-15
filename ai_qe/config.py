@@ -28,6 +28,16 @@ class Config(object):
         },
         "case": []
     }
+    remote_execution = {
+        "enabled": False,
+        "host": "",
+        "port": 22,
+        "username": "",
+        "key_file": "",
+        "password": "",
+        "remote_work_dir": "/tmp/ai-qe-remote",
+        "sync_files": True
+    }
 
     @classmethod
     def load_from_yaml(cls, yaml_file: str):
@@ -39,8 +49,8 @@ class Config(object):
             if hasattr(cls, key):
                 expected_type = type(getattr(cls, key))
 
-                # Special handling for case_gen_params which is a dict
-                if key == "case_gen_params" and isinstance(value, dict):
+                # Special handling for nested dict configs
+                if key in ["case_gen_params", "remote_execution"] and isinstance(value, dict):
                     setattr(cls, key, value)
                     logging.debug(f"Update config {key}={value}")
                 # Verify the value type
@@ -65,3 +75,10 @@ class Config(object):
         if args.use_vertex_ai:
             cls.use_vertex_ai = args.use_vertex_ai
             logging.debug(f"Update config use_vertex_ai={args.use_vertex_ai}")
+        if hasattr(args, 'remote_host') and args.remote_host:
+            cls.remote_execution["enabled"] = True
+            cls.remote_execution["host"] = args.remote_host
+            logging.debug(f"Update config remote_execution host={args.remote_host}")
+        if hasattr(args, 'remote_user') and args.remote_user:
+            cls.remote_execution["username"] = args.remote_user
+            logging.debug(f"Update config remote_execution username={args.remote_user}")
