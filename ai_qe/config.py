@@ -13,6 +13,21 @@ class Config(object):
     # FIXME
     test_item_modules = ["memory_doc", "rng_doc", "vm_basic_doc"]
     test_item_dir = "./test_items/"
+    case_gen_params = {
+        "params": {
+            "test_case": True,
+            "full_matrix": True,
+            "guest_name": "vm1",
+            "guest_xml": "guest.xml",
+            "mist_rules": "split",
+            "max_cases": 30,
+            "drop_env": 10,
+            "cleanup": True,
+            "rng_model": "virtio",
+            "curmem": 1048576,
+        },
+        "case": []
+    }
 
     @classmethod
     def load_from_yaml(cls, yaml_file: str):
@@ -24,8 +39,12 @@ class Config(object):
             if hasattr(cls, key):
                 expected_type = type(getattr(cls, key))
 
+                # Special handling for case_gen_params which is a dict
+                if key == "case_gen_params" and isinstance(value, dict):
+                    setattr(cls, key, value)
+                    logging.debug(f"Update config {key}={value}")
                 # Verify the value type
-                if isinstance(value, expected_type) or (expected_type is str and isinstance(value, (str, int))):
+                elif isinstance(value, expected_type) or (expected_type is str and isinstance(value, (str, int))):
                     setattr(cls, key, value)
                     logging.debug(f"Update config {key}={value}")
                 else:

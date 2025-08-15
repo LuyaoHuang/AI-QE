@@ -8,3 +8,16 @@ test_item_modules:
   - "rng_doc"
   - "vm_basic_doc"
 test_item_dir: "./test_items/"
+case_gen_params:
+  params:
+    test_case: true
+    full_matrix: true
+    guest_name: "vm1"
+    guest_xml: "guest.xml"
+    mist_rules: "split"
+    max_cases: 30
+    drop_env: 10
+    cleanup: true
+    rng_model: "virtio"
+    curmem: 1048576
+  case: []

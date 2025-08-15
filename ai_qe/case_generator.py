@@ -6,25 +6,10 @@ import re
 
 try:
     from ._utils import run_cmd
+    from .config import Config
 except ImportError:
     from _utils import run_cmd
-
-# TODO
-BASE_PARAM = {
-    "params": {
-        "test_case": True,
-        "full_matrix": True,
-        "guest_name": "vm1",
-        "guest_xml": "guest.xml",
-        "mist_rules": "split",
-        "max_cases": 30,
-        "drop_env": 10,
-        "cleanup": True,
-        "rng_model": "virtio",
-        "curmem": 1048576,
-    },
-    "case": []
-}
+    from config import Config
 
 
 def split_case(case_file: str) -> list:
@@ -78,7 +63,7 @@ def build_yaml(test_items: list, features: list) -> str:
     for feature in features:
         base_data["modules"].append(re.sub(r"(.*)_doc", r"\1", feature))
         base_data["doc-modules"].append(feature)
-    final_params = copy.deepcopy(BASE_PARAM)
+    final_params = copy.deepcopy(Config.case_gen_params)
     final_params["case"].append(base_data)
     return yaml.dump(final_params)
 
