@@ -6,6 +6,8 @@ import inspect
 import shlex
 import logging
 import paramiko
+import threading
+from typing import Dict, Optional
 
 
 def load_modules(modules_list: list, module_path: str='.') -> object:
@@ -315,9 +317,84 @@ class RemoteExecutor:
                     self.sftp.mkdir(remote_dir)
 
 
+class RemoteConnectionPool:
+    """
+    Singleton connection pool for managing SSH connections to remote hosts.
+    Reuses connections for the same host configuration to improve performance.
+    """
+    _instance = None
+    _lock = threading.Lock()
+
+    def __new__(cls):
+        if cls._instance is None:
+            with cls._lock:
+                if cls._instance is None:
+                    cls._instance = super().__new__(cls)
+                    cls._instance._connections: Dict[str, RemoteExecutor] = {}
+                    cls._instance._connection_lock = threading.Lock()
+        return cls._instance
+
+    def _get_connection_key(self, remote_config: dict) -> str:
+        """Generate a unique key for the remote configuration."""
+        return f"{remote_config.get('host')}:{remote_config.get('port', 22)}:{remote_config.get('username')}"
+
+    def get_connection(self, remote_config: dict) -> Optional[RemoteExecutor]:
+        """
+        Get or create a connection for the given remote configuration.
+
+        Args:
+            remote_config: Remote execution configuration dict
+
+        Returns:
+            RemoteExecutor instance or None if connection fails
+        """
+        connection_key = self._get_connection_key(remote_config)
+
+        with self._connection_lock:
+            executor = self._connections.get(connection_key)
+
+            if executor is None or not self._is_connection_alive(executor):
+                executor = RemoteExecutor(
+                    host=remote_config.get("host"),
+                    username=remote_config.get("username"),
+                    port=remote_config.get("port", 22),
+                    key_file=remote_config.get("key_file"),
+                    password=remote_config.get("password")
+                )
+
+                if executor.connect():
+                    self._connections[connection_key] = executor
+                    logging.debug(f"Created new connection for {connection_key}")
+                else:
+                    return None
+
+            return executor
+
+    def _is_connection_alive(self, executor: RemoteExecutor) -> bool:
+        """Check if the SSH connection is still alive."""
+        try:
+            if not executor.client or not executor.client.get_transport():
+                return False
+            transport = executor.client.get_transport()
+            return transport.is_active() and transport.is_authenticated()
+        except Exception:
+            return False
+
+    def close_all_connections(self):
+        """Close all connections in the pool."""
+        with self._connection_lock:
+            for executor in self._connections.values():
+                try:
+                    executor.disconnect()
+                except Exception as e:
+                    logging.warning(f"Error closing connection: {e}")
+            self._connections.clear()
+            logging.info("Closed all remote connections")
+
+
 def run_remote_cmd(command: str, remote_config: dict, timeout: int = 60, cwd: str = None) -> tuple[int, str]:
     """
-    Execute command on remote host using SSH.
+    Execute command on remote host using SSH with connection pooling.
 
     Args:
         command: Command to execute
@@ -328,18 +405,19 @@ def run_remote_cmd(command: str, remote_config: dict, timeout: int = 60, cwd: st
     Returns:
         Tuple of (return_code, output_string)
     """
-    executor = RemoteExecutor(
-        host=remote_config.get("host"),
-        username=remote_config.get("username"),
-        port=remote_config.get("port", 22),
-        key_file=remote_config.get("key_file"),
-        password=remote_config.get("password")
-    )
+    pool = RemoteConnectionPool()
+    executor = pool.get_connection(remote_config)
 
-    if not executor.connect():
+    if not executor:
         return -1, f"Failed to connect to remote host {remote_config.get('host')}"
 
-    try:
-        return executor.execute_command(command, timeout, cwd)
-    finally:
-        executor.disconnect()
+    return executor.execute_command(command, timeout, cwd)
+
+
+def close_remote_connections():
+    """
+    Close all remote connections in the pool.
+    Call this when you're done with all remote operations to clean up resources.
+    """
+    pool = RemoteConnectionPool()
+    pool.close_all_connections()
