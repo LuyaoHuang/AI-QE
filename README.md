@@ -126,7 +126,7 @@ This starts a local web server, allowing you to interact with AI-QE via your bro
     ```bash
     $ export ANTHROPIC_VERTEX_PROJECT_ID=your-gcp-project-id
     $ export CLOUD_ML_REGION=your-preferred-region
-    $ ./ai-qe -w -m claude-3-5-sonnet@20241022
+    $ ./ai-qe -w -m claude-sonnet-4
     ```
     Then, open your browser and access `http://localhost:7860`.
 
@@ -158,7 +158,7 @@ This allows for direct execution of test case generation and execution.
     ```bash
     $ export ANTHROPIC_VERTEX_PROJECT_ID=your-gcp-project-id
     $ export CLOUD_ML_REGION=your-preferred-region
-    $ ./ai-qe -m claude-3-5-sonnet@20241022 -c case1.txt -c case2.txt
+    $ ./ai-qe -m claude-sonnet-4 -c case1.txt -c case2.txt
     ```
 
 ## Remote Test Execution
@@ -234,7 +234,7 @@ Here's a quick reference for common `ai-qe` arguments:
 *   `-d {path}`, `--results-dir {path}`: Directory path to store result files (default: `./results`).
 *   `-s {ip}`, `--server-ip {ip}`: Ollama server IP address (required for Ollama).
 *   `-p {port}`, `--server-port {port}`: Ollama server Port number.
-*   `-m {model_name}`, `--model {model_name}`: LLM model name (e.g., `gemini-2.5-flash`, `jacob-ebey/phi4-tools`, `claude-3-5-sonnet@20241022`).
+*   `-m {model_name}`, `--model {model_name}`: LLM model name (e.g., `gemini-2.5-flash`, `jacob-ebey/phi4-tools`, `claude-sonnet-4`).
 *   `-f {path}`, `--config-yaml {path}`: Path to a configuration YAML file.
 *   `-l {level}`, `--log-level {level}`: Set the logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`; default: `WARNING`).
 *   `-w`, `--web`: Run the web interface (starts a Gradio server).
