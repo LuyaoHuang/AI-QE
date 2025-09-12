@@ -29,7 +29,7 @@ import re
 from langchain_core.tools import tool
 from langgraph.graph import START, END, StateGraph
 from langgraph.graph.message import add_messages
-from typing import TypedDict, Annotated, List, Union
+from typing import TypedDict, Annotated
 
 from langchain_core.messages import SystemMessage, HumanMessage, ToolMessage
 

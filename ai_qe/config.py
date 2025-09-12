@@ -10,7 +10,7 @@ class Config(object):
     verbose = False
     use_vertex_ai = False
 
-    # FIXME
+    # Default test item modules - can be overridden in config YAML
     test_item_modules = ["memory_doc", "rng_doc", "vm_basic_doc"]
     test_item_dir = "./test_items/"
     case_gen_params = {
